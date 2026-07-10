@@ -1,19 +1,27 @@
-Miniconda3-latest-Linux-x86_64.sh
-*.sh
-node_modules/
-backend/node_modules/
-web/node_modules/
-*.pth
-*.onnx
-*.npz
-*.csv
-*.jar
-dataset/
-bfg-*.jar
+# Virtual Environment
+venv311/
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Backup folders
+*-backup/
+
+# Environment variables
 .env
-web/.env
-.env
-.env.*
-.env
-.env.*
-.env.example
+.env.local
