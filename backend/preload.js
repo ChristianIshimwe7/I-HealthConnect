@@ -1,5 +1,12 @@
 // preload.js - Load environment variables and patch WebSocket
-require('dotenv').config();
+const dotenv = require('dotenv');
+const path = require('path');
+
+// Load .env from the current directory
+dotenv.config();
+
+console.log('📋 preload.js loaded');
+console.log('  SUPABASE_URL:', process.env.SUPABASE_URL ? '✅ Set' : '❌ Missing');
 
 // ✅ Fix WebSocket for Supabase Realtime
 const WebSocket = require('ws');
@@ -15,6 +22,3 @@ if (!globalThis.WebSocket) {
 }
 
 console.log('✅ WebSocket patched for Node.js 20');
-console.log('📋 Environment loaded:');
-console.log('  SUPABASE_URL:', process.env.SUPABASE_URL ? '✅ Set' : '❌ Missing');
-console.log('  JWT_SECRET:', process.env.JWT_SECRET ? '✅ Set' : '❌ Missing');

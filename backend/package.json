@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "node --require ./preload.js node_modules/.bin/ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
-    "start": "node --require ./preload.js dist/server.js"
+    "start": "node --require ./dist/preload.js dist/server.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
