@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "I-HealthConnect",
+    "slug": "ihealthconnect",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0F172A"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0F172A"
+      },
+      "package": "rw.afiabora.ihealthconnect",
+      "permissions": [
+        "RECORD_AUDIO",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "RECEIVE_BOOT_COMPLETED",
+        "FOREGROUND_SERVICE"
+      ]
+    },
+    "plugins": [
+      "expo-sqlite",
+      "expo-localization",
+      [
+        "expo-background-fetch",
+        {
+          "statusBarColor": "#0F172A"
+        }
+      ]
+    ],
+    "extra": {
+      "apiUrl": "https://api.ihealthconnect.rw",
+      "dhis2Url": "https://dhis2.moh.gov.rw"
+    }
+  }
+}

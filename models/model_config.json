@@ -1,0 +1,16 @@
+{
+  "input_size": 16,
+  "num_classes": 5,
+  "class_names": [
+    "CHD",
+    "NTD",
+    "Renal",
+    "Abdominal",
+    "Cleft"
+  ],
+  "model_type": "clinical_only",
+  "hidden_layers": [
+    64,
+    32
+  ]
+}

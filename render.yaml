@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: i-healthconnect-backend
+    env: node
+    rootDir: backend
+    buildCommand: chmod +x build.sh && ./build.sh
+    startCommand: npm start
+    envVars:
+      - key: SUPABASE_URL
+        value: https://nmzmkkwhtgkspfvbdxgr.supabase.co
+      - key: SUPABASE_ANON_KEY
+        value: sb_publishable_Tu-7n7V-kUpeVokv5w8rfQ_oJe9CDA7
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5tem1ra3dodGdrc3BmdmJkeGdyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MzM1NTIwNCwiZXhwIjoyMDk4OTMxMjA0fQ.CLdUuVbUmTm_iuD7o8xrqCLAxNjlOh4FRA2n25hNEVg
+      - key: JWT_SECRET
+        value: afibora_super_secret_jwt_key_2026_secure
+      - key: JWT_EXPIRES_IN
+        value: 7d

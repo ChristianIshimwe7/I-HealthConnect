@@ -1,0 +1,24 @@
+
+> ihealthconnect-backend@1.0.0 dev
+> node --require ./preload.js node_modules/.bin/ts-node-dev --respawn --transpile-only src/server.ts
+
+✅ WebSocket patched for Node.js 20 (preload)
+[INFO] 11:42:16 ts-node-dev ver. 2.0.0 (using ts-node ver. 10.9.2, typescript ver. 5.9.3)
+✅ WebSocket patched for Node.js 20 (preload)
+📦 ML Model path: /home/christian/projects/I-HealthConnect/models/clinical_model.onnx
+📦 Loading ML model from: /home/christian/projects/I-HealthConnect/models/clinical_model.onnx
+📦 Loading ML model from: /home/christian/projects/I-HealthConnect/models/clinical_model.onnx
+🚀 I-HealthConnect API running on port 3000
+   ENV: development
+   Health: http://localhost:3000/health
+✅ ML Model loaded successfully
+   Input: 16 clinical features
+   Output: 5 anomaly probabilities
+   Inputs: clinical_features
+   Outputs: clinical_output
+✅ ML Model loaded successfully
+   Input: 16 clinical features
+   Output: 5 anomaly probabilities
+   Inputs: clinical_features
+   Outputs: clinical_output
+✅ Database connected at: 2026-07-09T09:42:18.695Z
