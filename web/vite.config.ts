@@ -1,27 +1,34 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
+// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
   server: {
+    port: 3000,
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
+        target: 'https://i-healthconnect.onrender.com',
         changeOrigin: true,
-        secure: false,
-        ws: true,
-        configure: (proxy, _options) => {
-          proxy.on('error', (err, _req, _res) => {
-            console.log('proxy error', err);
-          });
-          proxy.on('proxyReq', (proxyReq, req, _res) => {
-            console.log('Sending Request to the Target:', req.method, req.url);
-          });
-          proxy.on('proxyRes', (proxyRes, req, _res) => {
-            console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
-          });
-        },
-      },
-    },
+        rewrite: (path) => path.replace(/^\/api/, '/api')
+      }
+    }
   },
+  build: {
+    outDir: 'dist',
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: undefined
+      }
+    }
+  },
+  define: {
+    'process.env': {
+      NODE_ENV: JSON.stringify(process.env.NODE_ENV),
+      VITE_API_URL: JSON.stringify(process.env.VITE_API_URL || 'https://i-healthconnect.onrender.com/api'),
+      VITE_SUPABASE_URL: JSON.stringify(process.env.VITE_SUPABASE_URL || 'https://nmzmkkwhtgkspfvbdxgr.supabase.co'),
+      VITE_SUPABASE_ANON_KEY: JSON.stringify(process.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_Tu-7n7V-kUpeVokv5w8rfQ_oJe9CDA7')
+    }
+  }
 });
