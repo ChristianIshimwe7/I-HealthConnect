@@ -8,7 +8,11 @@
     "start": "node dist/server.js",
     "dev": "nodemon src/server.ts"
   },
-  "keywords": ["healthcare", "api", "supabase"],
+  "keywords": [
+    "healthcare",
+    "api",
+    "supabase"
+  ],
   "author": "Christian Ishimwe",
   "license": "ISC",
   "dependencies": {
@@ -21,7 +25,8 @@
     "pg": "^8.11.5",
     "socket.io": "^4.7.5",
     "supabase": "^1.162.1",
-    "ws": "^8.17.1"
+    "ws": "^8.17.1",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
