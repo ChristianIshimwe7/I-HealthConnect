@@ -3,6 +3,15 @@ import { Router, Request, Response } from 'express';
 import { createClient } from '@supabase/supabase-js';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
+import WebSocket from 'ws';
+
+// ✅ PATCH WebSocket for Node.js 20 BEFORE creating Supabase client
+if (!global.WebSocket) {
+  global.WebSocket = WebSocket;
+}
+if (!globalThis.WebSocket) {
+  globalThis.WebSocket = WebSocket;
+}
 
 const router = Router();
 

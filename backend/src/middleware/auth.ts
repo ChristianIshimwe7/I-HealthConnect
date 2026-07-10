@@ -2,6 +2,15 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { createClient } from '@supabase/supabase-js';
+import WebSocket from 'ws';
+
+// ✅ PATCH WebSocket for Node.js 20 BEFORE creating Supabase client
+if (!global.WebSocket) {
+  global.WebSocket = WebSocket;
+}
+if (!globalThis.WebSocket) {
+  globalThis.WebSocket = WebSocket;
+}
 
 // ✅ Hardcoded Supabase credentials (temporary for Render)
 const SUPABASE_URL = 'https://nmzmkkwhtgkspfvbdxgr.supabase.co';
