@@ -130,11 +130,14 @@ export default function DashboardPage() {
     );
   }
 
+  // Calculate lowRisk if not provided
+  const lowRisk = stats.lowRisk || Math.max(0, stats.totalScreened - stats.highRiskFlagged - Math.floor(stats.totalScreened * 0.1));
+
   // Prepare pie chart data using actual values
   const pieData = [
     { name: 'High Risk', value: stats.highRiskFlagged || 0 },
-    { name: 'Elevated', value: stats.totalScreened > 0 ? Math.max(0, stats.totalScreened - stats.highRiskFlagged - stats.lowRisk) : 0 },
-    { name: 'Low Risk', value: stats.lowRisk || 0 },
+    { name: 'Elevated', value: stats.totalScreened > 0 ? Math.max(0, stats.totalScreened - stats.highRiskFlagged - lowRisk) : 0 },
+    { name: 'Low Risk', value: lowRisk || 0 },
   ].filter(d => d.value > 0);
 
   return (
