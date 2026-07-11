@@ -35,17 +35,19 @@ export const login = async (email: string, password: string, role: UserRole): Pr
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ email, password, role }),
+      body: JSON.stringify({ email, password }),
     });
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || 'Login failed');
+      throw new Error(error.message || 'Login failed');
     }
 
     const data = await response.json();
-    
-    if (!data.success || !data.token) {
+
+    // The backend returns: { token, user: { id, email, name, role } }
+    if (!data.token || !data.user) {
+      console.error('Invalid login response:', data);
       throw new Error('Invalid login response');
     }
 
@@ -53,10 +55,10 @@ export const login = async (email: string, password: string, role: UserRole): Pr
       id: data.user.id.toString(),
       name: data.user.name,
       email: data.user.email,
-      role: data.user.role,
+      role: data.user.role || role,
       district: data.user.district || 'Kigali',
       token: data.token,
-      initials: data.user.initials || data.user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
+      initials: data.user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
     };
 
     saveUser(userObj);
@@ -79,12 +81,13 @@ export const signup = async (name: string, email: string, password: string, role
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || 'Registration failed');
+      throw new Error(error.message || 'Registration failed');
     }
 
     const data = await response.json();
-    
-    if (!data.success || !data.token) {
+
+    if (!data.token || !data.user) {
+      console.error('Invalid registration response:', data);
       throw new Error('Invalid registration response');
     }
 
@@ -92,10 +95,10 @@ export const signup = async (name: string, email: string, password: string, role
       id: data.user.id.toString(),
       name: data.user.name,
       email: data.user.email,
-      role: data.user.role,
+      role: data.user.role || role,
       district: data.user.district || 'Kigali',
       token: data.token,
-      initials: data.user.initials || data.user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
+      initials: data.user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
     };
 
     saveUser(userObj);
