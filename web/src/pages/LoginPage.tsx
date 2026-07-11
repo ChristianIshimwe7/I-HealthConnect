@@ -15,7 +15,7 @@ const ROLES: Array<{ id: UserRole; icon: string; label: string; sub: string }> =
 export default function LoginPage() {
   const navigate = useNavigate();
   const [role, setRole] = useState<UserRole>("doctor");
-  const [email, setEmail] = useState("ishimwechris765@gmail.com");
+  const [email, setEmail] = useState("demo@ihealthconnect.com");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -25,8 +25,9 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      const user = await login(email, password, role);
-      saveUser(user);
+      // Only pass email and password - role is just for UI selection
+      const user = await login(email, password);
+      saveUser({ ...user, role });
       navigate("/dashboard");
     } catch (err: any) {
       setError(err.message ?? "Sign in failed. Please try again.");
