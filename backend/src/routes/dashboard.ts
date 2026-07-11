@@ -5,89 +5,30 @@ const router = express.Router();
 
 router.get('/stats', async (req, res) => {
   try {
-    console.log('📊 Fetching dashboard stats from your ML model data...');
+    console.log('📊 Fetching dashboard stats...');
 
-    // 1. Get total patients
+    // Get patients with risk scores
     const { data: patients, error: patientsError } = await supabase
       .from('patients')
-      .select('id, district, name');
+      .select('id, name, age, gender, district, risk_tier, overall_score');
 
     if (patientsError) {
       console.error('❌ Patients error:', patientsError);
-      return res.status(500).json({ error: 'Failed to fetch patients', details: patientsError });
+      return res.status(500).json({ error: 'Failed to fetch patients' });
     }
 
     const totalPatients = patients?.length || 0;
     console.log('✅ Total patients:', totalPatients);
 
-    // 2. Get risk scores from your ML model (using your actual column names)
-    const { data: riskScores, error: riskError } = await supabase
-      .from('risk_scores')
-      .select('*')
-      .order('prediction_date', { ascending: false });
-
-    if (riskError) {
-      console.error('❌ Risk scores error:', riskError);
-    }
-
-    console.log('✅ Risk scores found:', riskScores?.length || 0);
-
-    // 3. Calculate risk counts from your model data
-    let highRisk = 0;
-    let elevatedRisk = 0;
-    let lowRisk = 0;
-
-    // Get the latest risk score for each patient
-    const latestRiskPerPatient = new Map();
-    (riskScores || []).forEach((r: any) => {
-      const patientId = r.patient_id;
-      if (!latestRiskPerPatient.has(patientId) || 
-          new Date(r.prediction_date) > new Date(latestRiskPerPatient.get(patientId).prediction_date)) {
-        latestRiskPerPatient.set(patientId, r);
-      }
+    // Count risk tiers
+    let highRisk = 0, elevatedRisk = 0, lowRisk = 0;
+    patients?.forEach((p: any) => {
+      if (p.risk_tier === 'high') highRisk++;
+      else if (p.risk_tier === 'elevated') elevatedRisk++;
+      else if (p.risk_tier === 'low') lowRisk++;
     });
 
-    // Count risks from the latest predictions
-    latestRiskPerPatient.forEach((r: any) => {
-      if (r.risk_tier === 'high') highRisk++;
-      else if (r.risk_tier === 'elevated') elevatedRisk++;
-      else if (r.risk_tier === 'low') lowRisk++;
-    });
-
-    console.log('✅ Risk counts - High:', highRisk, 'Elevated:', elevatedRisk, 'Low:', lowRisk);
-
-    // 4. Get referrals
-    const { data: referrals, error: referralsError } = await supabase
-      .from('referrals')
-      .select('id, patient_id, referral_to, status, sent_at');
-
-    if (referralsError) {
-      console.error('❌ Referrals error:', referralsError);
-    }
-
-    const referralsCount = referrals?.length || 0;
-    console.log('✅ Referrals:', referralsCount);
-
-    // 5. Get CHWs (users with role 'chw')
-    const { data: users, error: usersError } = await supabase
-      .from('users')
-      .select('role');
-
-    if (usersError) {
-      console.error('❌ Users error:', usersError);
-    }
-
-    const chwCount = (users || []).filter((u: any) => u.role === 'chw').length;
-    console.log('✅ CHWs:', chwCount);
-
-    // 6. Get anomaly breakdown from your model predictions
-    const anomalyBreakdown = [
-      { label: 'High Risk', prob: totalPatients > 0 ? highRisk / totalPatients : 0 },
-      { label: 'Elevated', prob: totalPatients > 0 ? elevatedRisk / totalPatients : 0 },
-      { label: 'Low Risk', prob: totalPatients > 0 ? lowRisk / totalPatients : 0 }
-    ];
-
-    // 7. Get district chart
+    // District chart
     const districtCounts = (patients || []).reduce((acc: any, p: any) => {
       const district = p.district || 'Unknown';
       acc[district] = (acc[district] || 0) + 1;
@@ -99,43 +40,36 @@ router.get('/stats', async (req, res) => {
       screenings: count as number
     }));
 
-    // 8. Get recent referrals
-    const recentReferrals = (referrals || []).slice(0, 5).map((r: any) => {
-      const patient = patients?.find((p: any) => p.id === r.patient_id);
-      return {
-        id: r.id,
-        name: patient?.name || 'Patient ' + r.patient_id,
-        district: patient?.district || 'Kigali',
-        tier: r.status === 'pending' ? 'elevated' : 'low',
-        score: 0,
-        time: new Date(r.sent_at || r.created_at).toLocaleDateString()
-      };
-    });
+    // Anomaly breakdown
+    const totalWithRisk = patients?.filter((p: any) => p.risk_tier)?.length || 0;
+    const anomalyBreakdown = [
+      { label: 'High Risk', prob: totalWithRisk > 0 ? highRisk / totalWithRisk : 0 },
+      { label: 'Elevated', prob: totalWithRisk > 0 ? elevatedRisk / totalWithRisk : 0 },
+      { label: 'Low Risk', prob: totalWithRisk > 0 ? lowRisk / totalWithRisk : 0 }
+    ];
 
-    // Prepare response with your ML model data
     const stats = {
       totalScreened: totalPatients,
       highRiskFlagged: highRisk,
-      referralsSent: referralsCount,
-      referralRate: totalPatients > 0 ? (referralsCount / totalPatients) * 100 : 0,
-      activeCHWs: chwCount,
-      totalCHWs: chwCount,
+      elevatedRiskFlagged: elevatedRisk,
+      lowRiskFlagged: lowRisk,
+      referralsSent: 0,
+      referralRate: 0,
+      activeCHWs: 0,
+      totalCHWs: 0,
       lowRisk: lowRisk,
       elevatedRisk: elevatedRisk,
       anomalyBreakdown: anomalyBreakdown,
-      recentReferrals: recentReferrals,
+      recentReferrals: [],
       districtChart: districtChart
     };
 
-    console.log('✅ Dashboard stats sent with model data:', stats);
+    console.log('✅ Dashboard stats sent:', stats);
     res.json(stats);
 
   } catch (error) {
     console.error('❌ Dashboard error:', error);
-    res.status(500).json({ 
-      error: 'Failed to fetch dashboard stats',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    });
+    res.status(500).json({ error: 'Failed to fetch dashboard stats' });
   }
 });
 
