@@ -24,18 +24,18 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     setLoading(true);
-    
+
     try {
       console.log('🔄 Attempting login...');
       const user = await login(email, password);
       console.log('✅ Login successful:', user);
-      
+
       // Save user with selected role
       const userWithRole = { ...user, role };
       saveUser(userWithRole);
-      
+
       console.log('🔄 Redirecting to dashboard...');
-      // Force navigation
+      // Force navigation using window.location
       window.location.href = '/dashboard';
     } catch (err: any) {
       console.error('❌ Login error:', err);
