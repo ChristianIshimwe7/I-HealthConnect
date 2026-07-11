@@ -16,7 +16,7 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const [role, setRole] = useState<UserRole>("doctor");
   const [email, setEmail] = useState("demo@ihealthconnect.com");
-  const [password, setPassword] = useState("");
+  const [password, setPassword] = useState("DemoPass123!");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -24,12 +24,21 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     setLoading(true);
+    
     try {
-      // Only pass email and password - role is just for UI selection
+      console.log('🔄 Attempting login...');
       const user = await login(email, password);
-      saveUser({ ...user, role });
-      navigate("/dashboard");
+      console.log('✅ Login successful:', user);
+      
+      // Save user with selected role
+      const userWithRole = { ...user, role };
+      saveUser(userWithRole);
+      
+      console.log('🔄 Redirecting to dashboard...');
+      // Force navigation
+      window.location.href = '/dashboard';
     } catch (err: any) {
+      console.error('❌ Login error:', err);
       setError(err.message ?? "Sign in failed. Please try again.");
     } finally {
       setLoading(false);
@@ -45,8 +54,6 @@ export default function LoginPage() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#F9FAFB", display: "flex", flexDirection: "column" }}>
-
-      {/* Header */}
       <header style={{
         display: "flex",
         alignItems: "center",
@@ -58,27 +65,11 @@ export default function LoginPage() {
         gap: "16px"
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <img
-            src="/logo-photo.png"
-            alt="I-HealthConnect Logo"
-            style={{
-              width: 300,
-              height: 150,
-              borderRadius: "50%",
-              objectFit: "cover"
-            }}
-          />
           <span style={{ fontSize: 28, fontWeight: 700 }}>I‑HealthConnect</span>
         </div>
         <nav style={{ display: "flex", gap: 40, fontSize: 20 }}>
-          <a href="#care" style={{ color: "#0F172A", textDecoration: "none", display: "flex", alignItems: "center", gap: 10 }}>
-            Care & services
-            <span style={{ fontSize: 14, marginTop: 3 }}>▼</span>
-          </a>
-          <a href="#news" style={{ color: "#0F172A", textDecoration: "none", display: "flex", alignItems: "center", gap: 10 }}>
-            News & blog
-            <span style={{ fontSize: 14, marginTop: 3 }}>▼</span>
-          </a>
+          <a href="#care" style={{ color: "#0F172A", textDecoration: "none" }}>Care & services ▼</a>
+          <a href="#news" style={{ color: "#0F172A", textDecoration: "none" }}>News & blog ▼</a>
         </nav>
         <button
           onClick={() => navigate("/signup")}
@@ -97,7 +88,6 @@ export default function LoginPage() {
         </button>
       </header>
 
-      {/* Main Content */}
       <main style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", padding: "60px 20px" }}>
         <h1 style={{ fontSize: 40, fontWeight: 800, color: "#0F172A", marginBottom: 16, textAlign: "center" }}>
           Early detection. Every pregnancy. Everywhere.
@@ -106,11 +96,9 @@ export default function LoginPage() {
           AI‑powered congenital anomaly screening for Rwanda's frontline health network.
         </p>
 
-        {/* Sign In Form */}
         <form onSubmit={handleSubmit} style={{ width: "100%", maxWidth: 1300, background: "#FFFFFF", padding: "60px 48px", borderRadius: 24, boxShadow: "0 10px 25px -5px rgba(0,0,0,0.05)" }}>
           <h2 style={{ fontSize: 32, fontWeight: 800, marginBottom: 48, color: "#0F172A", textAlign: "center" }}>Sign in</h2>
 
-          {/* Role Selection */}
           <div style={{ display: "flex", flexDirection: "column", gap: 32, marginBottom: 56 }}>
             {ROLES.map((r, index) => {
               const alignment = index % 3;
@@ -136,7 +124,6 @@ export default function LoginPage() {
                       boxShadow: role === r.id ? "0 10px 20px rgba(29, 158, 117, 0.12)" : "0 4px 6px rgba(0,0,0,0.01)",
                       transition: "all 0.25s ease-in-out"
                     }}>
-                    <div style={{ width: 48, height: 48, display: "flex", alignItems: "center", justifyContent: "center" }}></div>
                     <div style={{ display: "flex", flexDirection: "column", textAlign: "left" }}>
                       <div style={{ fontSize: 24, fontWeight: 800, color: role === r.id ? "#085041" : "#0F172A" }}>{r.label}</div>
                       <div style={{ fontSize: 16, color: role === r.id ? "#0F6E56" : "#64748B", marginTop: 6, lineHeight: 1.4 }}>{r.sub}</div>
@@ -147,7 +134,6 @@ export default function LoginPage() {
             })}
           </div>
 
-          {/* Form Inputs */}
           <div style={{ maxWidth: 650, margin: "0 auto" }}>
             <input
               style={{ ...inp, marginBottom: 20 }}
@@ -196,7 +182,6 @@ export default function LoginPage() {
         </form>
       </main>
 
-      {/* Footer */}
       <footer style={{
         background: "#E1F5EE",
         color: "#0F172A",
@@ -206,27 +191,10 @@ export default function LoginPage() {
         flexWrap: "wrap",
         gap: 40
       }}>
-        <div style={{ fontSize: 16 }}>
-          <strong>E‑mail:</strong> ishimwechris765@gmail.com
-        </div>
-        <div style={{ fontSize: 16 }}>
-          <strong>LinkedIn:</strong>{" "}
-          <a href="https://linkedin.com" style={{ color: "#1D9E75", textDecoration: "none" }}>
-            Christian Ishimwe
-          </a>
-        </div>
-        <div style={{ fontSize: 16 }}>
-          <strong>Tel:</strong>{" "}
-          <a href="tel:+250787563648" style={{ color: "#1D9E75", textDecoration: "none" }}>
-            +250 787 563 648
-          </a>
-        </div>
-        <div style={{ fontSize: 16 }}>
-          <strong>GitHub:</strong>{" "}
-          <a href="https://github.com" style={{ color: "#1D9E75", textDecoration: "none" }}>
-            ChristianIshimwe7
-          </a>
-        </div>
+        <div style={{ fontSize: 16 }}><strong>E‑mail:</strong> ishimwechris765@gmail.com</div>
+        <div style={{ fontSize: 16 }}><strong>LinkedIn:</strong> Christian Ishimwe</div>
+        <div style={{ fontSize: 16 }}><strong>Tel:</strong> +250 787 563 648</div>
+        <div style={{ fontSize: 16 }}><strong>GitHub:</strong> ChristianIshimwe7</div>
       </footer>
     </div>
   );
