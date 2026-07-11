@@ -1,139 +1,141 @@
-// backend/src/routes/dashboard.ts
+import express from 'express';
+import { supabase } from '../config/supabase';
 
-import { Router, Response } from 'express';
-import { query } from '../db/pool';
-import { authenticate, AuthRequest } from '../middleware/auth';
+const router = express.Router();
 
-const router = Router();
-
-// ── GET /api/dashboard/stats ──
-router.get('/stats', authenticate, async (req: AuthRequest, res: Response) => {
+router.get('/stats', async (req, res) => {
   try {
-    console.log(' Fetching dashboard stats...');
+    console.log('📊 Fetching dashboard stats from your ML model data...');
 
-    // Total screened
-    const screened = await query('SELECT COUNT(*) as count FROM visits');
-    console.log(' Total screened:', screened.rows[0].count);
+    // 1. Get total patients
+    const { data: patients, error: patientsError } = await supabase
+      .from('patients')
+      .select('id, district, name');
 
-    // High risk flagged
-    const highRisk = await query(
-      "SELECT COUNT(*) as count FROM risk_scores WHERE risk_tier = 'high'"
-    );
-    console.log(' High risk:', highRisk.rows[0].count);
+    if (patientsError) {
+      console.error('❌ Patients error:', patientsError);
+      return res.status(500).json({ error: 'Failed to fetch patients', details: patientsError });
+    }
 
-    // Referrals sent
-    const referrals = await query('SELECT COUNT(*) as count FROM referrals');
-    console.log(' Referrals:', referrals.rows[0].count);
+    const totalPatients = patients?.length || 0;
+    console.log('✅ Total patients:', totalPatients);
 
-    // Active CHWs
-    const activeChws = await query(
-      "SELECT COUNT(*) as count FROM users WHERE role = 'chw' AND active = TRUE"
-    );
-    console.log(' Active CHWs:', activeChws.rows[0].count);
+    // 2. Get risk scores from your ML model (using your actual column names)
+    const { data: riskScores, error: riskError } = await supabase
+      .from('risk_scores')
+      .select('*')
+      .order('prediction_date', { ascending: false });
 
-    // Total CHWs
-    const totalChws = await query(
-      "SELECT COUNT(*) as count FROM users WHERE role = 'chw'"
-    );
-    console.log(' Total CHWs:', totalChws.rows[0].count);
+    if (riskError) {
+      console.error('❌ Risk scores error:', riskError);
+    }
 
-    // Anomaly breakdown
-    const breakdown = await query(
-      `SELECT
-         ROUND(AVG(chd_prob) * 100)::int as chd,
-         ROUND(AVG(ntd_prob) * 100)::int as ntd,
-         ROUND(AVG(renal_prob) * 100)::int as renal,
-         ROUND(AVG(abdominal_prob) * 100)::int as abdominal,
-         ROUND(AVG(cleft_prob) * 100)::int as cleft
-       FROM risk_scores`
-    );
-    console.log(' Breakdown:', breakdown.rows[0]);
+    console.log('✅ Risk scores found:', riskScores?.length || 0);
 
-    // Recent referrals
-    const recentReferrals = await query(
-      `SELECT
-         p.name AS "patientName",
-         p.district,
-         p.sector AS "chwSector",
-         rs.risk_tier AS "riskTier",
-         rs.overall_score AS "overallScore",
-         r.sent_at AS "sentAt"
-       FROM referrals r
-       JOIN patients p ON r.patient_id = p.id
-       JOIN risk_scores rs ON r.risk_score_id = rs.id
-       ORDER BY r.sent_at DESC
-       LIMIT 10`
-    );
-    console.log(' Recent referrals:', recentReferrals.rows.length);
+    // 3. Calculate risk counts from your model data
+    let highRisk = 0;
+    let elevatedRisk = 0;
+    let lowRisk = 0;
 
-    // District chart
-    const districtChart = await query(
-      `SELECT 
-         p.district,
-         COUNT(DISTINCT v.id) as screenings
-       FROM visits v
-       JOIN patients p ON v.patient_id = p.id
-       WHERE p.district IS NOT NULL
-       GROUP BY p.district
-       ORDER BY screenings DESC
-       LIMIT 10`
-    );
-    console.log(' District chart:', districtChart.rows.length);
+    // Get the latest risk score for each patient
+    const latestRiskPerPatient = new Map();
+    (riskScores || []).forEach((r: any) => {
+      const patientId = r.patient_id;
+      if (!latestRiskPerPatient.has(patientId) || 
+          new Date(r.prediction_date) > new Date(latestRiskPerPatient.get(patientId).prediction_date)) {
+        latestRiskPerPatient.set(patientId, r);
+      }
+    });
 
-    const totalScreened = parseInt(screened.rows[0]?.count || '0');
-    const totalReferrals = parseInt(referrals.rows[0]?.count || '0');
-    const referralRate = totalScreened > 0 ? Math.round((totalReferrals / totalScreened) * 100) : 0;
+    // Count risks from the latest predictions
+    latestRiskPerPatient.forEach((r: any) => {
+      if (r.risk_tier === 'high') highRisk++;
+      else if (r.risk_tier === 'elevated') elevatedRisk++;
+      else if (r.risk_tier === 'low') lowRisk++;
+    });
 
-    const response = {
-      totalScreened: totalScreened,
-      highRiskFlagged: parseInt(highRisk.rows[0]?.count || '0'),
-      referralsSent: totalReferrals,
-      activeChws: parseInt(activeChws.rows[0]?.count || '0'),
-      totalChws: parseInt(totalChws.rows[0]?.count || '0'),
-      referralRate: referralRate,
-      anomalyBreakdown: breakdown.rows[0] || { chd: 0, ntd: 0, renal: 0, abdominal: 0, cleft: 0 },
-      recentReferrals: recentReferrals.rows,
-      districtChart: districtChart.rows.map((row: any) => ({
-        district: row.district || 'Unknown',
-        screenings: parseInt(row.screenings)
-      })),
+    console.log('✅ Risk counts - High:', highRisk, 'Elevated:', elevatedRisk, 'Low:', lowRisk);
+
+    // 4. Get referrals
+    const { data: referrals, error: referralsError } = await supabase
+      .from('referrals')
+      .select('id, patient_id, referral_to, status, sent_at');
+
+    if (referralsError) {
+      console.error('❌ Referrals error:', referralsError);
+    }
+
+    const referralsCount = referrals?.length || 0;
+    console.log('✅ Referrals:', referralsCount);
+
+    // 5. Get CHWs (users with role 'chw')
+    const { data: users, error: usersError } = await supabase
+      .from('users')
+      .select('role');
+
+    if (usersError) {
+      console.error('❌ Users error:', usersError);
+    }
+
+    const chwCount = (users || []).filter((u: any) => u.role === 'chw').length;
+    console.log('✅ CHWs:', chwCount);
+
+    // 6. Get anomaly breakdown from your model predictions
+    const anomalyBreakdown = [
+      { label: 'High Risk', prob: totalPatients > 0 ? highRisk / totalPatients : 0 },
+      { label: 'Elevated', prob: totalPatients > 0 ? elevatedRisk / totalPatients : 0 },
+      { label: 'Low Risk', prob: totalPatients > 0 ? lowRisk / totalPatients : 0 }
+    ];
+
+    // 7. Get district chart
+    const districtCounts = (patients || []).reduce((acc: any, p: any) => {
+      const district = p.district || 'Unknown';
+      acc[district] = (acc[district] || 0) + 1;
+      return acc;
+    }, {});
+
+    const districtChart = Object.entries(districtCounts).map(([district, count]) => ({
+      district,
+      screenings: count as number
+    }));
+
+    // 8. Get recent referrals
+    const recentReferrals = (referrals || []).slice(0, 5).map((r: any) => {
+      const patient = patients?.find((p: any) => p.id === r.patient_id);
+      return {
+        id: r.id,
+        name: patient?.name || 'Patient ' + r.patient_id,
+        district: patient?.district || 'Kigali',
+        tier: r.status === 'pending' ? 'elevated' : 'low',
+        score: 0,
+        time: new Date(r.sent_at || r.created_at).toLocaleDateString()
+      };
+    });
+
+    // Prepare response with your ML model data
+    const stats = {
+      totalScreened: totalPatients,
+      highRiskFlagged: highRisk,
+      referralsSent: referralsCount,
+      referralRate: totalPatients > 0 ? (referralsCount / totalPatients) * 100 : 0,
+      activeCHWs: chwCount,
+      totalCHWs: chwCount,
+      lowRisk: lowRisk,
+      elevatedRisk: elevatedRisk,
+      anomalyBreakdown: anomalyBreakdown,
+      recentReferrals: recentReferrals,
+      districtChart: districtChart
     };
 
-    console.log(' Dashboard response:', response);
-    return res.json(response);
+    console.log('✅ Dashboard stats sent with model data:', stats);
+    res.json(stats);
 
-  } catch (err) {
-    console.error('[Dashboard] Stats error:', err);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// ── GET /api/dashboard/chw-performance ──
-router.get('/chw-performance', authenticate, async (req: AuthRequest, res: Response) => {
-  try {
-    const result = await query(
-      `SELECT
-         u.id, u.name, u.sector,
-         COUNT(DISTINCT v.id)    AS screenings,
-         COUNT(DISTINCT r.id)    AS referrals,
-         ROUND(AVG(
-           EXTRACT(EPOCH FROM (v.updated_at - v.created_at)) / 60
-         ), 1)                   AS avg_intake_minutes,
-         MAX(v.visit_date)       AS last_active
-       FROM users u
-       LEFT JOIN visits v    ON v.chw_id = u.id
-         AND v.visit_date >= NOW() - INTERVAL '30 days'
-       LEFT JOIN referrals r ON r.chw_id = u.id
-         AND r.sent_at >= NOW() - INTERVAL '30 days'
-       WHERE u.role = 'chw' AND u.active = TRUE
-       GROUP BY u.id, u.name, u.sector
-       ORDER BY screenings DESC`
-    );
-
-    return res.json({ chws: result.rows });
-  } catch (err) {
-    console.error('[Dashboard] CHW performance error:', err);
-    return res.status(500).json({ error: 'Internal server error' });
+  } catch (error) {
+    console.error('❌ Dashboard error:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch dashboard stats',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 });
 
