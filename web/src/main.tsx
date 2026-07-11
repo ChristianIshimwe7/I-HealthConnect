@@ -10,3 +10,4 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     </ErrorBoundary>
   </React.StrictMode>
 );
+console.log('🚀 I-HealthConnect v2.0.0 deployed');
