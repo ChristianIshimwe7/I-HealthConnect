@@ -1,14 +1,13 @@
 {
   "name": "ihealthconnect-web",
-  "version": "1.0.0",
+  "version": "2.0.1",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "vercel-build": "npm install --legacy-peer-deps && npm run build",
-    "preview": "vite preview",
-    "lint": "eslint src --ext ts,tsx"
+    "vercel-build": "npm install && npm run build",
+    "preview": "vite preview"
   },
   "dependencies": {
     "@gradio/client": "^2.3.1",
