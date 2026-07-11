@@ -3,6 +3,9 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth';
 import dashboardRoutes from './routes/dashboard';
+import patientsRoutes from './routes/patients';
+import referralsRoutes from './routes/referrals';
+import riskScoresRoutes from './routes/risk-scores';
 
 dotenv.config();
 
@@ -21,8 +24,12 @@ app.get('/', (req, res) => {
   res.json({ name: 'I-HealthConnect API', version: '1.0.0', status: 'healthy' });
 });
 
+// Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/patients', patientsRoutes);
+app.use('/api/referrals', referralsRoutes);
+app.use('/api/risk-scores', riskScoresRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'healthy', timestamp: new Date().toISOString() });

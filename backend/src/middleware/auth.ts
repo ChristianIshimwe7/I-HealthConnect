@@ -1,51 +1,37 @@
-// @ts-nocheck
-import jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
 
-// Use any to bypass WebSocket type conflicts
-const WebSocket = require('ws');
-
-// Type for authenticated request
 export interface AuthRequest extends Request {
-  user?: any;
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+    district?: string;
+  };
 }
 
-// Alias for authenticateJWT - for backward compatibility
-export const authenticate = authenticateJWT;
-
-export const authenticateWebSocket = (ws: any, req: any) => {
-  const token = req.headers.authorization?.split(' ')[1] || 
-                req.query.token || 
-                req.headers['sec-websocket-protocol'];
-  
-  if (!token) {
-    ws.close(1008, 'Authentication required');
-    return false;
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
-    (ws as any).user = decoded;
-    return true;
-  } catch (error) {
-    ws.close(1008, 'Invalid token');
-    return false;
-  }
-};
-
-export const authenticateJWT = (req: Request, res: Response, next: NextFunction) => {
+export const authenticateJWT = async (req: AuthRequest, res: Response, next: NextFunction): Promise<any> => {
   const authHeader = req.headers.authorization;
   const token = authHeader?.split(' ')[1];
 
   if (!token) {
-    return res.status(401).json({ message: 'Unauthorized' });
+    return res.status(401).json({ message: 'No token provided' });
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
-    (req as any).user = decoded;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret') as any;
+    req.user = {
+      id: decoded.id,
+      email: decoded.email,
+      role: decoded.role || 'nurse',
+      district: decoded.district
+    };
     next();
   } catch (error) {
+    console.error('Auth error:', error);
     return res.status(403).json({ message: 'Invalid token' });
   }
 };
+
+export const authenticate = authenticateJWT;
+export default authenticate;

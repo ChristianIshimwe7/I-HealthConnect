@@ -1,22 +1,22 @@
 import { getToken } from './auth';
 
-export interface FormattedDashboardStats {
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
+export interface DashboardStats {
   totalScreened: number;
   highRiskFlagged: number;
+  elevatedRiskFlagged: number;
+  lowRiskFlagged: number;
   referralsSent: number;
   referralRate: number;
   activeCHWs: number;
   totalCHWs: number;
-  lowRisk: number;
-  elevatedRisk: number;
   anomalyBreakdown: Array<{ label: string; prob: number }>;
-  recentReferrals: Array<{ id: string; name: string; district: string; tier: string; score: number; time?: string }>;
+  recentReferrals: Array<any>;
   districtChart: Array<{ district: string; screenings: number }>;
 }
 
-const API_BASE = 'https://i-healthconnect.onrender.com';
-
-export const fetchDashboardStats = async (): Promise<FormattedDashboardStats> => {
+export const fetchDashboardStats = async (): Promise<DashboardStats> => {
   try {
     const token = getToken();
     
@@ -28,28 +28,13 @@ export const fetchDashboardStats = async (): Promise<FormattedDashboardStats> =>
     });
 
     if (!response.ok) {
-      throw new Error('Failed to fetch dashboard stats');
+      throw new Error(`Failed to fetch dashboard stats: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log('📊 Dashboard data received:', data);
-    
-    // Ensure all fields exist
-    return {
-      totalScreened: data.totalScreened || 0,
-      highRiskFlagged: data.highRiskFlagged || 0,
-      referralsSent: data.referralsSent || 0,
-      referralRate: data.referralRate || 0,
-      activeCHWs: data.activeCHWs || 0,
-      totalCHWs: data.totalCHWs || 0,
-      lowRisk: data.lowRisk || 0,
-      elevatedRisk: data.elevatedRisk || 0,
-      anomalyBreakdown: data.anomalyBreakdown || [],
-      recentReferrals: data.recentReferrals || [],
-      districtChart: data.districtChart || [],
-    };
+    return data;
   } catch (error) {
-    console.error('Error fetching dashboard stats:', error);
+    console.error('Dashboard error:', error);
     throw error;
   }
 };

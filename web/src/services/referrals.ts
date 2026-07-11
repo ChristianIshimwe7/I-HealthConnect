@@ -1,93 +1,78 @@
-// web/src/services/referrals.ts
-
 import { getToken } from './auth';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
-export interface Referral {
-  id: string;
-  patientName: string;
-  age: number;
-  district: string;
-  chwSector: string;
-  riskScore: number;
-  riskTier: string;
-  status: string;
-  referralReason: string;
-  sentAt: string;
-  chdProb: number;
-  ntdProb: number;
-  renalProb: number;
-  abdominalProb: number;
-  cleftProb: number;
-  gestationalWeeks: number;
-}
-
-export const getReferrals = async (): Promise<Referral[]> => {
+export const getReferrals = async (status?: string) => {
   try {
     const token = getToken();
-    if (!token) {
-      console.warn('No token found, returning empty array');
-      return [];
-    }
-
-    const response = await fetch(`${API_BASE}/api/referrals`, {
+    const url = status ? `${API_BASE}/api/referrals?status=${status}` : `${API_BASE}/api/referrals`;
+    
+    const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
+        'Authorization': token ? `Bearer ${token}` : '',
       },
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to fetch referrals');
+      throw new Error(`Failed to fetch referrals: ${response.status}`);
     }
 
     const data = await response.json();
-    
-    let referrals = [];
-    if (data.referrals && Array.isArray(data.referrals)) {
-      referrals = data.referrals;
-    } else if (Array.isArray(data)) {
-      referrals = data;
-    } else if (data.data && Array.isArray(data.data)) {
-      referrals = data.data;
-    } else {
-      return [];
-    }
-
-    return referrals;
+    return data.referrals || data;
   } catch (error) {
-    console.error('❌ Error fetching referrals:', error);
-    return [];
+    console.error('Referrals error:', error);
+    throw error;
   }
 };
 
-export const updateReferralStatus = async (id: string, status: string, note?: string): Promise<any> => {
+export const createReferral = async (referralData: any) => {
   try {
     const token = getToken();
-    if (!token) {
-      throw new Error('No authentication token found');
+    
+    const response = await fetch(`${API_BASE}/api/referrals`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token ? `Bearer ${token}` : '',
+      },
+      body: JSON.stringify(referralData),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to create referral: ${response.status}`);
     }
 
+    const data = await response.json();
+    return data.referral || data;
+  } catch (error) {
+    console.error('Create referral error:', error);
+    throw error;
+  }
+};
+
+export const updateReferralStatus = async (id: string, status: string, note?: string) => {
+  try {
+    const token = getToken();
+    
     const response = await fetch(`${API_BASE}/api/referrals/${id}/status`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
+        'Authorization': token ? `Bearer ${token}` : '',
       },
-      body: JSON.stringify({ status, note: note || `Updated to ${status}` }),
+      body: JSON.stringify({ status, note }),
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to update referral');
+      throw new Error(`Failed to update referral: ${response.status}`);
     }
 
-    return await response.json();
+    const data = await response.json();
+    return data;
   } catch (error) {
-    console.error('❌ Error updating referral:', error);
+    console.error('Update referral error:', error);
     throw error;
   }
 };

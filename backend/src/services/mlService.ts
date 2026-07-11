@@ -1,4 +1,11 @@
-// backend/src/services/mlService.ts - Fast Mock Mode
+// backend/src/services/mlService.ts - Real ML Integration
+
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import path from 'path';
+
+const execAsync = promisify(exec);
+const ML_SCRIPT = path.join(__dirname, '../../ml_predict.py');
 
 interface PredictionResult {
   chd_prob: number;
@@ -11,35 +18,93 @@ interface PredictionResult {
 }
 
 class MLService {
-  private initialized: boolean = true;
+  private initialized: boolean = false;
+  private useMock: boolean = true;
 
   async initialize(): Promise<void> {
-    console.log('✅ ML Service running in FAST MOCK mode');
-    this.initialized = true;
+    try {
+      // Test if Python is available
+      await execAsync('python --version');
+      
+      // Test if the script runs
+      const testInput = JSON.stringify({ maternal_age: 28 });
+      await execAsync(`python ${ML_SCRIPT}`, { input: testInput });
+      
+      this.initialized = true;
+      this.useMock = false;
+      console.log('✅ ML Service initialized with real model');
+    } catch (error) {
+      console.warn('⚠️ ML Service using mock mode:', error);
+      this.initialized = true;
+      this.useMock = true;
+    }
   }
 
   async predict(clinicalFeatures: number[]): Promise<PredictionResult> {
-    // Fast mock prediction
-    const maternalAge = clinicalFeatures[0] || 28;
-    const systolicBP = clinicalFeatures[4] || 120;
-    const diastolicBP = clinicalFeatures[5] || 80;
-    const glucose = clinicalFeatures[7] || 95;
-    const hemoglobin = clinicalFeatures[8] || 12.5;
-    
+    if (!this.initialized) {
+      await this.initialize();
+    }
+
+    // Extract features for the ML model
+    const features = {
+      maternal_age: clinicalFeatures[0] || 28,
+      systolic_bp: clinicalFeatures[4] || 120,
+      diastolic_bp: clinicalFeatures[5] || 80,
+      fundal_height: clinicalFeatures[3] || 24,
+      blood_glucose: clinicalFeatures[7] || 95,
+      hemoglobin: clinicalFeatures[8] || 12.5,
+      weight: clinicalFeatures[2] || 70,
+      gravida: clinicalFeatures[10] || 1,
+      parity: clinicalFeatures[11] || 0,
+      gestational_age_weeks: clinicalFeatures[1] || 24,
+      family_history: clinicalFeatures[12] === 1,
+      prior_loss: clinicalFeatures[13] === 1,
+      infection_status: clinicalFeatures[14] === 1 ? 'infection' : 'none',
+      folic_acid: clinicalFeatures[15] === 1 ? 'ongoing' : 'none'
+    };
+
+    if (this.useMock) {
+      return this.mockPrediction(features);
+    }
+
+    try {
+      const { stdout, stderr } = await execAsync(`python ${ML_SCRIPT}`, {
+        input: JSON.stringify(features)
+      });
+
+      if (stderr) {
+        console.warn('⚠️ ML Warning:', stderr);
+      }
+
+      const result = JSON.parse(stdout);
+      return result;
+    } catch (error) {
+      console.error('❌ ML prediction error:', error);
+      return this.mockPrediction(features);
+    }
+  }
+
+  private mockPrediction(features: any): PredictionResult {
+    const maternalAge = features.maternal_age || 28;
+    const systolicBP = features.systolic_bp || 120;
+    const diastolicBP = features.diastolic_bp || 80;
+    const glucose = features.blood_glucose || 95;
+    const hemoglobin = features.hemoglobin || 12.5;
+
     let riskScore = 0.05;
     if (maternalAge > 35) riskScore += 0.25;
     if (maternalAge < 18) riskScore += 0.15;
     if (systolicBP > 140 || diastolicBP > 90) riskScore += 0.3;
     if (glucose > 140) riskScore += 0.2;
     if (hemoglobin < 10) riskScore += 0.15;
-    
+
     riskScore = Math.min(Math.max(riskScore, 0.01), 0.95);
-    
+
     let risk_tier: 'low' | 'elevated' | 'high';
     if (riskScore > 0.6) risk_tier = 'high';
     else if (riskScore > 0.35) risk_tier = 'elevated';
     else risk_tier = 'low';
-    
+
     return {
       chd_prob: Math.min(riskScore * 1.1, 0.95),
       ntd_prob: Math.min(riskScore * 1.0, 0.9),
@@ -53,13 +118,13 @@ class MLService {
 
   getModelInfo() {
     return {
-      modelPath: 'mock-mode',
-      modelExists: false,
+      modelPath: this.useMock ? 'mock-mode' : 'real-model',
+      modelExists: !this.useMock,
       inputSize: 16,
       outputSize: 5,
       classNames: ['CHD', 'NTD', 'Renal', 'Abdominal', 'Cleft'],
-      initialized: true,
-      useMockMode: true,
+      initialized: this.initialized,
+      useMockMode: this.useMock,
     };
   }
 

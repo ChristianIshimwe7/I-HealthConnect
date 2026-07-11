@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import { getToken } from '../services/auth';
 
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
 interface AddPatientModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -81,7 +83,8 @@ function AddPatientModal({ isOpen, onClose, onSuccess }: AddPatientModalProps) {
 
       console.log('🚀 Creating patient...');
 
-      const patientResponse = await fetch('/api/patients', {
+      // Use API_BASE from environment
+      const patientResponse = await fetch(`${API_BASE}/api/patients`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -99,86 +102,67 @@ function AddPatientModal({ isOpen, onClose, onSuccess }: AddPatientModalProps) {
       });
 
       const patientResult = await patientResponse.json();
-      
+
       if (!patientResponse.ok) {
         throw new Error(patientResult.error || 'Failed to create patient');
       }
 
-      const patientId = patientResult.patient?.id || patientResult.id;
+      const patientId = patientResult.patient?.id || patientResult.id || patientResult.data?.id;
       console.log('✅ Patient created:', patientId);
 
-      const predictResponse = await fetch('/api/ml/predict', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          patient_id: Number(patientId),
-          maternal_age: parseInt(formData.age) || 28,
-          gestational_age_weeks: parseInt(formData.gestational_age) || 24,
-          systolic_bp: parseInt(formData.systolic_bp) || 120,
-          diastolic_bp: parseInt(formData.diastolic_bp) || 80,
-          heart_rate: 80,
-          blood_glucose: parseFloat(formData.glucose) || 95,
-          hemoglobin: parseFloat(formData.hemoglobin) || 12.5,
-          parity: parseInt(formData.parity) || 0,
-          previous_anomaly: formData.family_history === 'yes',
-          family_history: formData.family_history === 'yes',
-          infection_status: formData.infection === 'yes' ? 'infection' : 'none',
-          medication_exposure: formData.folic_acid === 'none' ? 'none' : 'folic_acid'
-        }),
-      });
+      if (patientId) {
+        // Try to predict if ML endpoint exists
+        try {
+          const predictResponse = await fetch(`${API_BASE}/api/ml/predict`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              patient_id: Number(patientId),
+              maternal_age: parseInt(formData.age) || 28,
+              gestational_age_weeks: parseInt(formData.gestational_age) || 24,
+              systolic_bp: parseInt(formData.systolic_bp) || 120,
+              diastolic_bp: parseInt(formData.diastolic_bp) || 80,
+              heart_rate: 80,
+              blood_glucose: parseFloat(formData.glucose) || 95,
+              hemoglobin: parseFloat(formData.hemoglobin) || 12.5,
+              parity: parseInt(formData.parity) || 0,
+              previous_anomaly: formData.family_history === 'yes',
+              family_history: formData.family_history === 'yes',
+              infection_status: formData.infection === 'yes' ? 'infection' : 'none',
+              medication_exposure: formData.folic_acid === 'none' ? 'none' : 'folic_acid'
+            }),
+          });
 
-      const predictResult = await predictResponse.json();
-      
-      let prediction = null;
-      if (predictResponse.ok && predictResult.data?.prediction) {
-        prediction = predictResult.data.prediction;
-        console.log('✅ Prediction completed:', prediction);
-        
-        await fetch(`/api/patients/${patientId}`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            overall_score: prediction.overall_score || 0,
-            risk_tier: prediction.risk_tier || 'low',
-            chd_prob: prediction.chd_prob || 0,
-            ntd_prob: prediction.ntd_prob || 0,
-            renal_prob: prediction.renal_prob || 0,
-            abdominal_prob: prediction.abdominal_prob || 0,
-            cleft_prob: prediction.cleft_prob || 0,
-          }),
-        });
+          if (predictResponse.ok) {
+            const predictResult = await predictResponse.json();
+            const prediction = predictResult.data?.prediction;
+            if (prediction) {
+              console.log('✅ Prediction completed:', prediction);
+              await fetch(`${API_BASE}/api/patients/${patientId}`, {
+                method: 'PATCH',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                  overall_score: prediction.overall_score || 0,
+                  risk_tier: prediction.risk_tier || 'low',
+                  chd_prob: prediction.chd_prob || 0,
+                  ntd_prob: prediction.ntd_prob || 0,
+                  renal_prob: prediction.renal_prob || 0,
+                  abdominal_prob: prediction.abdominal_prob || 0,
+                  cleft_prob: prediction.cleft_prob || 0,
+                }),
+              });
+            }
+          }
+        } catch (predictErr) {
+          console.log('⚠️ Prediction skipped:', predictErr);
+        }
       }
-
-      const riskTier = prediction?.risk_tier || 'low';
-      const riskScore = prediction?.overall_score || 0;
-      
-      const referralStatus = (riskTier === 'high' || riskTier === 'elevated') ? 'pending' : 'completed';
-      
-      const referralReason = riskTier === 'high' || riskTier === 'elevated'
-        ? `${riskTier} risk detected (${Math.round(riskScore * 100)}% confidence) - Requires review`
-        : `Routine screening - ${riskTier} risk (${Math.round(riskScore * 100)}% confidence) - No action needed`;
-
-      await fetch('/api/referrals', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          patient_id: Number(patientId),
-          chw_id: 12,
-          referral_reason: referralReason,
-          status: referralStatus,
-        }),
-      });
-
-      console.log('✅ Referral created');
 
       setFormData(initialFormData);
       setStep(1);
