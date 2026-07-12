@@ -23,22 +23,35 @@ app.use(cors({
   optionsSuccessStatus: 200
 }));
 
-// Additional CORS headers for all responses
+// Add CORS headers
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+    return res.sendStatus(200);
   }
   next();
 });
 
 app.use(express.json());
 
+// Health checks
 app.get('/', (req, res) => {
-  res.json({ name: 'I-HealthConnect API', version: '1.0.0', status: 'healthy' });
+  res.json({ 
+    name: 'I-HealthConnect API', 
+    version: '1.0.0', 
+    status: 'healthy'
+  });
+});
+
+app.get('/health', (req, res) => {
+  res.json({ status: 'healthy', timestamp: new Date().toISOString() });
+});
+
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
 
 // Routes
@@ -49,17 +62,28 @@ app.use('/api/referrals', referralsRoutes);
 app.use('/api/risk-scores', riskScoresRoutes);
 app.use('/api/ml', mlRoutes);
 
-app.get('/health', (req, res) => {
-  res.json({ status: 'healthy', timestamp: new Date().toISOString() });
+// 404 handler
+app.use('*', (req, res) => {
+  console.log(`❌ Route not found: ${req.method} ${req.originalUrl}`);
+  res.status(404).json({ 
+    error: 'Route not found', 
+    path: req.originalUrl,
+    method: req.method
+  });
 });
 
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'healthy', timestamp: new Date().toISOString() });
+// Error handler
+app.use((err: any, req: any, res: any, next: any) => {
+  console.error('❌ Error:', err);
+  res.status(500).json({ error: 'Internal server error' });
 });
 
 // Initialize ML service
 mlService.initialize().catch(console.error);
 
-app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📍 Health: http://localhost:${PORT}/health`);
 });
+
+export default server;

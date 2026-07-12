@@ -27,7 +27,6 @@ export interface Patient {
 export const getPatients = async (limit = 1000, offset = 0, search = ''): Promise<any> => {
   try {
     const token = getToken();
-    console.log('🔑 Token for patients:', token ? token.substring(0, 20) + '...' : 'No token');
     
     if (!token) {
       console.warn('⚠️ No token found');
@@ -48,22 +47,69 @@ export const getPatients = async (limit = 1000, offset = 0, search = ''): Promis
     console.log('📡 Response status:', response.status);
 
     if (!response.ok) {
-      if (response.status === 401) {
-        console.error('❌ Unauthorized - token may be expired');
-        // Optionally redirect to login
-      }
-      const errorText = await response.text();
-      console.error('❌ Error response:', errorText);
       throw new Error(`Failed to fetch patients: ${response.status}`);
     }
 
-    const data = await response.json();
-    console.log('✅ Patients data received:', data.data?.length || 0, 'patients');
-    return data;
+    const result = await response.json();
+    console.log('✅ Patients response:', result);
+
+    // Handle different response formats
+    let patients = [];
+    let total = 0;
+
+    if (Array.isArray(result)) {
+      patients = result;
+      total = result.length;
+    } else if (result.data && Array.isArray(result.data)) {
+      patients = result.data;
+      total = result.total || patients.length;
+    } else if (result.patients && Array.isArray(result.patients)) {
+      patients = result.patients;
+      total = result.total || patients.length;
+    } else {
+      // Try to extract any array from the response
+      for (const key in result) {
+        if (Array.isArray(result[key])) {
+          patients = result[key];
+          total = patients.length;
+          break;
+        }
+      }
+    }
+
+    console.log(`✅ Found ${patients.length} patients`);
+    return { data: patients, total: total };
   } catch (error) {
     console.error('❌ Error fetching patients:', error);
+    return { data: [], total: 0 };
+  }
+};
+
+export const createPatient = async (patientData: any): Promise<any> => {
+  try {
+    const token = getToken();
+    if (!token) {
+      throw new Error('No authentication token');
+    }
+
+    const response = await fetch(`${API_BASE}/api/patients`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(patientData),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to create patient: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('❌ Error creating patient:', error);
     throw error;
   }
 };
 
-export default { getPatients };
+export default { getPatients, createPatient };
