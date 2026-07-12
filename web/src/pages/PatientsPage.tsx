@@ -10,16 +10,18 @@ import {
   Users, 
   Search, 
   Plus, 
-  Filter, 
-  ChevronDown,
-  UserCircle,
-  Calendar,
+  Calendar, 
   MapPin,
   Activity,
   Shield,
   AlertCircle,
   CheckCircle,
-  Clock
+  Clock,
+  Heart,
+  Brain,
+  Kidney,
+  Stethoscope,
+  Baby
 } from 'lucide-react';
 
 export default function PatientsPage() {
@@ -31,6 +33,7 @@ export default function PatientsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [filterTier, setFilterTier] = useState<string>('all');
+  const [expandedPatient, setExpandedPatient] = useState<number | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -97,6 +100,10 @@ export default function PatientsPage() {
     setTimeout(() => setSuccessMessage(null), 5000);
   };
 
+  const toggleExpand = (id: number) => {
+    setExpandedPatient(expandedPatient === id ? null : id);
+  };
+
   const filteredPatients = Array.isArray(patients) 
     ? patients.filter(p => {
         const matchesSearch = 
@@ -118,13 +125,33 @@ export default function PatientsPage() {
     low: patients.filter(p => p?.risk_tier === 'low').length,
   };
 
+  const getAnomalyIcon = (type: string) => {
+    switch(type) {
+      case 'chd': return <Heart size={14} color="#E24B4A" />;
+      case 'ntd': return <Brain size={14} color="#F59E0B" />;
+      case 'renal': return <Kidney size={14} color="#3B82F6" />;
+      case 'abdominal': return <Stethoscope size={14} color="#8B5CF6" />;
+      case 'cleft': return <Baby size={14} color="#EC4899" />;
+      default: return <Activity size={14} color="#6B7280" />;
+    }
+  };
+
+  const getAnomalyLabel = (type: string) => {
+    switch(type) {
+      case 'chd': return 'CHD';
+      case 'ntd': return 'NTD';
+      case 'renal': return 'Renal';
+      case 'abdominal': return 'Abdominal';
+      case 'cleft': return 'Cleft';
+      default: return type;
+    }
+  };
+
   const C = { border: '#E2E8F0', bg: '#F8FAFC', text: '#0F172A',
               muted: '#94A3B8', sub: '#475569', green: '#1D9E75',
               surface: '#FFFFFF', dark: '#0F172A' };
 
-  if (!user) {
-    return null;
-  }
+  if (!user) return null;
 
   if (loading) {
     return (
@@ -180,7 +207,6 @@ export default function PatientsPage() {
 
   return (
     <Layout activeRoute={location.pathname} user={user}>
-      {/* Header with stats */}
       <div style={{ marginBottom: 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap' }}>
           <div>
@@ -212,7 +238,6 @@ export default function PatientsPage() {
           </button>
         </div>
 
-        {/* Stats Cards */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 16, marginTop: 16 }}>
           <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: '16px 20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -262,7 +287,6 @@ export default function PatientsPage() {
         </div>
       )}
 
-      {/* Search and Filter */}
       <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
         <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
           <Search size={18} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: C.muted }} />
@@ -303,7 +327,6 @@ export default function PatientsPage() {
         </select>
       </div>
 
-      {/* Patient Cards Grid */}
       {filteredPatients.length === 0 ? (
         <div style={{
           background: C.surface,
@@ -323,11 +346,22 @@ export default function PatientsPage() {
       ) : (
         <div style={{ 
           display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', 
+          gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', 
           gap: 16 
         }}>
           {filteredPatients.map((p) => {
             const risk = getRiskColor(p?.risk_tier);
+            const isExpanded = expandedPatient === p.id;
+            const hasAnomalies = p?.chd_prob || p?.ntd_prob || p?.renal_prob || p?.abdominal_prob || p?.cleft_prob;
+            
+            const anomalies = [
+              { key: 'chd', label: 'CHD', value: p?.chd_prob, icon: <Heart size={14} color="#E24B4A" /> },
+              { key: 'ntd', label: 'NTD', value: p?.ntd_prob, icon: <Brain size={14} color="#F59E0B" /> },
+              { key: 'renal', label: 'Renal', value: p?.renal_prob, icon: <Kidney size={14} color="#3B82F6" /> },
+              { key: 'abdominal', label: 'Abdominal', value: p?.abdominal_prob, icon: <Stethoscope size={14} color="#8B5CF6" /> },
+              { key: 'cleft', label: 'Cleft', value: p?.cleft_prob, icon: <Baby size={14} color="#EC4899" /> },
+            ];
+
             return (
               <div
                 key={p?.id || Math.random()}
@@ -350,7 +384,6 @@ export default function PatientsPage() {
                   e.currentTarget.style.transform = 'translateY(0)';
                 }}
               >
-                {/* Top ribbon for risk tier */}
                 <div style={{
                   position: 'absolute',
                   top: 0,
@@ -418,6 +451,85 @@ export default function PatientsPage() {
                     <Shield size={14} />
                     <span>{p?.sector || 'N/A'}</span>
                   </div>
+                </div>
+
+                {/* Anomaly Predictions Section */}
+                <div style={{
+                  marginTop: 12,
+                  paddingTop: 12,
+                  borderTop: `1px solid ${C.border}`,
+                }}>
+                  <div 
+                    onClick={() => toggleExpand(p.id)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      cursor: 'pointer',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: C.text
+                    }}
+                  >
+                    <span>🔬 Anomaly Predictions</span>
+                    <span style={{ fontSize: 11, color: C.muted }}>
+                      {hasAnomalies ? 'Click to expand' : 'No predictions yet'}
+                    </span>
+                  </div>
+                  
+                  {isExpanded && hasAnomalies && (
+                    <div style={{
+                      marginTop: 10,
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr',
+                      gap: 6
+                    }}>
+                      {anomalies.map((anomaly) => {
+                        const prob = anomaly.value || 0;
+                        const percentage = Math.round(prob * 100);
+                        const level = prob > 0.5 ? 'high' : prob > 0.3 ? 'medium' : 'low';
+                        const levelColor = level === 'high' ? '#DC2626' : level === 'medium' ? '#D97706' : '#1D9E75';
+                        
+                        return (
+                          <div
+                            key={anomaly.key}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              padding: '4px 8px',
+                              background: C.bg,
+                              borderRadius: 4,
+                              fontSize: 11,
+                              color: C.text
+                            }}
+                          >
+                            {anomaly.icon}
+                            <span style={{ fontWeight: 500, minWidth: 50 }}>{anomaly.label}</span>
+                            <span style={{ 
+                              color: levelColor,
+                              fontWeight: 600,
+                              marginLeft: 'auto'
+                            }}>
+                              {percentage}%
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  
+                  {isExpanded && !hasAnomalies && (
+                    <div style={{
+                      marginTop: 8,
+                      fontSize: 12,
+                      color: C.muted,
+                      textAlign: 'center',
+                      padding: '8px'
+                    }}>
+                      No prediction data available for this patient.
+                    </div>
+                  )}
                 </div>
               </div>
             );
