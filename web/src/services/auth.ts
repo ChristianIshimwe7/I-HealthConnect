@@ -4,6 +4,9 @@ const API_BASE = import.meta.env.VITE_API_URL || '';
 
 export const login = async (email: string, password: string): Promise<User> => {
   try {
+    console.log('🔐 Attempting login...');
+    console.log('📡 API URL:', `${API_BASE}/api/auth/login`);
+    
     const response = await fetch(`${API_BASE}/api/auth/login`, {
       method: 'POST',
       headers: {
@@ -12,20 +15,27 @@ export const login = async (email: string, password: string): Promise<User> => {
       body: JSON.stringify({ email, password }),
     });
 
+    const data = await response.json();
+    console.log('📩 Login response:', data);
+
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Login failed');
+      throw new Error(data.message || 'Login failed');
     }
 
-    const data = await response.json();
-    
     // Store token and user
-    saveToken(data.token);
-    saveUser(data.user);
+    if (data.token) {
+      localStorage.setItem('token', data.token);
+      console.log('✅ Token stored:', data.token.substring(0, 20) + '...');
+    }
     
+    if (data.user) {
+      localStorage.setItem('user', JSON.stringify(data.user));
+      console.log('✅ User stored:', data.user);
+    }
+
     return data.user;
   } catch (error) {
-    console.error('Login error:', error);
+    console.error('❌ Login error:', error);
     throw error;
   }
 };
@@ -40,32 +50,32 @@ export const register = async (userData: any): Promise<User> => {
       body: JSON.stringify(userData),
     });
 
+    const data = await response.json();
+
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Registration failed');
+      throw new Error(data.message || 'Registration failed');
     }
 
-    const data = await response.json();
-    
-    // Store token and user
-    saveToken(data.token);
-    saveUser(data.user);
-    
+    if (data.token) {
+      localStorage.setItem('token', data.token);
+    }
+    if (data.user) {
+      localStorage.setItem('user', JSON.stringify(data.user));
+    }
+
     return data.user;
   } catch (error) {
-    console.error('Registration error:', error);
+    console.error('❌ Registration error:', error);
     throw error;
   }
 };
-
-// Alias for register - for SignUpPage compatibility
-export const signup = register;
 
 export const logout = (): void => {
   localStorage.removeItem('token');
   localStorage.removeItem('user');
   sessionStorage.removeItem('token');
   sessionStorage.removeItem('user');
+  window.location.href = '/login';
 };
 
 export const getToken = (): string | null => {
@@ -80,7 +90,6 @@ export const saveUser = (user: User): void => {
   localStorage.setItem('user', JSON.stringify(user));
 };
 
-// Alias for getCurrentUser - for DashboardPage compatibility
 export const getStoredUser = (): User | null => {
   const user = localStorage.getItem('user');
   return user ? JSON.parse(user) : null;
@@ -94,11 +103,9 @@ export const isAuthenticated = (): boolean => {
   return !!getToken();
 };
 
-// Export everything as default
 export default {
   login,
   register,
-  signup,
   logout,
   getToken,
   saveToken,
