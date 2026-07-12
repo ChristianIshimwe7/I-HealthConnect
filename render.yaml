@@ -4,11 +4,14 @@ services:
     runtime: node
     repo: https://github.com/ChristianIshimwe7/I-HealthConnect
     rootDir: backend
-    buildCommand: npm install && npm run build
+    buildCommand: |
+      npm install
+      npm run build
+      pip install torch torchvision numpy pandas scikit-learn
     startCommand: node dist/server.js
     envVars:
       - key: PORT
-        value: 3000
+        value: 10000
       - key: NODE_ENV
         value: production
       - key: SUPABASE_URL
