@@ -8,7 +8,7 @@ export default function SignUpPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<UserRole>("doctor");
+  const [role, setRole] = useState<UserRole>("nurse");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -18,7 +18,13 @@ export default function SignUpPage() {
     setLoading(true);
 
     try {
-      const user = await signup(name, email, password, role);
+      // ✅ CORRECT: Send object with expected fields
+      const user = await signup({
+        name,
+        email,
+        password,
+        role,
+      });
       saveUser(user);
       navigate("/dashboard");
     } catch (err: any) {
@@ -30,7 +36,6 @@ export default function SignUpPage() {
 
   return (
     <div style={{ padding: "40px", maxWidth: 600, margin: "0 auto" }}>
-      
       <button
         type="button"
         onClick={() => navigate("/")}
@@ -50,7 +55,7 @@ export default function SignUpPage() {
       </button>
 
       <h1 style={{ marginBottom: "20px" }}>Create an Account</h1>
-      
+
       <form
         onSubmit={handleSubmit}
         style={{ display: "flex", flexDirection: "column", gap: "12px" }}
@@ -73,19 +78,20 @@ export default function SignUpPage() {
           type="password"
           value={password}
           onChange={e => setPassword(e.target.value)}
-          placeholder="Password (min 8 chars)"
+          placeholder="Password (min 6 chars)"
           required
+          minLength={6}
         />
         <select
           value={role}
           onChange={e => setRole(e.target.value as UserRole)}
         >
-          <option value="doctor">Doctor</option>
           <option value="nurse">Nurse</option>
+          <option value="doctor">Doctor</option>
+          <option value="chw">Community Health Worker</option>
+          <option value="admin">Admin</option>
           <option value="supervisor">Supervisor</option>
           <option value="coordinator">Coordinator</option>
-          <option value="admin">Admin</option>
-          <option value="chw">Community Health Worker</option>
         </select>
 
         {error && <div style={{ color: "red" }}>{error}</div>}
