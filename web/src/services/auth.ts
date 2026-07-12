@@ -2,10 +2,11 @@ import { User } from '../types';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
+export type UserRole = 'admin' | 'doctor' | 'nurse' | 'chw';
+
 export const login = async (email: string, password: string): Promise<User> => {
   try {
     console.log('🔐 Attempting login...');
-    console.log('📡 API URL:', `${API_BASE}/api/auth/login`);
     
     const response = await fetch(`${API_BASE}/api/auth/login`, {
       method: 'POST',
@@ -16,21 +17,16 @@ export const login = async (email: string, password: string): Promise<User> => {
     });
 
     const data = await response.json();
-    console.log('📩 Login response:', data);
 
     if (!response.ok) {
       throw new Error(data.message || 'Login failed');
     }
 
-    // Store token and user
     if (data.token) {
       localStorage.setItem('token', data.token);
-      console.log('✅ Token stored:', data.token.substring(0, 20) + '...');
     }
-    
     if (data.user) {
       localStorage.setItem('user', JSON.stringify(data.user));
-      console.log('✅ User stored:', data.user);
     }
 
     return data.user;
@@ -40,8 +36,10 @@ export const login = async (email: string, password: string): Promise<User> => {
   }
 };
 
-export const register = async (userData: any): Promise<User> => {
+export const signup = async (userData: any): Promise<User> => {
   try {
+    console.log('📝 Attempting signup...');
+    
     const response = await fetch(`${API_BASE}/api/auth/register`, {
       method: 'POST',
       headers: {
@@ -69,6 +67,8 @@ export const register = async (userData: any): Promise<User> => {
     throw error;
   }
 };
+
+export const register = signup;
 
 export const logout = (): void => {
   localStorage.removeItem('token');
@@ -105,6 +105,7 @@ export const isAuthenticated = (): boolean => {
 
 export default {
   login,
+  signup,
   register,
   logout,
   getToken,
