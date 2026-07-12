@@ -21,8 +21,6 @@ function Layout({ children, activeRoute, user }: LayoutProps) {
   const navItems = [
     { path: '/dashboard', label: 'Dashboard' },
     { path: '/patients', label: 'Patients' },
-    { path: '/referrals', label: 'Referrals' },
-    { path: '/trends', label: 'Anomaly Trends' },
   ];
 
   if (user?.role === 'coordinator' || user?.role === 'admin') {
