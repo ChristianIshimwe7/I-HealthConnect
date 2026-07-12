@@ -1,6 +1,6 @@
 // backend/src/services/mlService.ts - Real ML Integration
 
-import { exec } from 'child_process';
+import { exec, spawn } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
 
@@ -28,7 +28,8 @@ class MLService {
       
       // Test if the script runs
       const testInput = JSON.stringify({ maternal_age: 28 });
-      await execAsync(`python ${ML_SCRIPT}`, { input: testInput });
+      // Use spawn for stdin input
+      await this.runPythonScript(testInput);
       
       this.initialized = true;
       this.useMock = false;
@@ -38,6 +39,38 @@ class MLService {
       this.initialized = true;
       this.useMock = true;
     }
+  }
+
+  private async runPythonScript(input: string): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const process = spawn('python', [ML_SCRIPT]);
+      
+      let stdout = '';
+      let stderr = '';
+      
+      process.stdout.on('data', (data) => {
+        stdout += data.toString();
+      });
+      
+      process.stderr.on('data', (data) => {
+        stderr += data.toString();
+      });
+      
+      process.on('close', (code) => {
+        if (code !== 0) {
+          reject(new Error(`Python script exited with code ${code}: ${stderr}`));
+          return;
+        }
+        try {
+          resolve(JSON.parse(stdout));
+        } catch (e) {
+          reject(new Error(`Failed to parse Python output: ${stdout}`));
+        }
+      });
+      
+      process.stdin.write(input);
+      process.stdin.end();
+    });
   }
 
   async predict(clinicalFeatures: number[]): Promise<PredictionResult> {
@@ -68,15 +101,7 @@ class MLService {
     }
 
     try {
-      const { stdout, stderr } = await execAsync(`python ${ML_SCRIPT}`, {
-        input: JSON.stringify(features)
-      });
-
-      if (stderr) {
-        console.warn('⚠️ ML Warning:', stderr);
-      }
-
-      const result = JSON.parse(stdout);
+      const result = await this.runPythonScript(JSON.stringify(features));
       return result;
     } catch (error) {
       console.error('❌ ML prediction error:', error);
