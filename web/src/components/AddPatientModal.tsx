@@ -57,7 +57,7 @@ const initialFormData: PatientFormData = {
   folic_acid: 'ongoing',
 };
 
-// Direct prediction function - calculates risk based on patient data
+// Direct prediction function
 function calculatePrediction(formData: PatientFormData) {
   const age = parseInt(formData.age) || 28;
   const gestationalAge = parseInt(formData.gestational_age) || 24;
@@ -73,60 +73,41 @@ function calculatePrediction(formData: PatientFormData) {
   const infection = formData.infection === 'yes';
   const folicAcid = formData.folic_acid;
 
-  // Calculate risk score based on multiple factors
   let riskScore = 0.05;
   
-  // Age factors
   if (age > 35) riskScore += 0.25;
   if (age < 18) riskScore += 0.15;
-  
-  // Blood pressure factors
   if (systolicBP > 140 || diastolicBP > 90) riskScore += 0.2;
   if (systolicBP > 160 || diastolicBP > 100) riskScore += 0.3;
-  
-  // Glucose factors
   if (glucose > 140) riskScore += 0.2;
   if (glucose > 200) riskScore += 0.3;
-  
-  // Hemoglobin factors
   if (hemoglobin < 10) riskScore += 0.15;
   if (hemoglobin < 8) riskScore += 0.3;
-  
-  // Weight factors
   if (weight > 90) riskScore += 0.1;
   if (weight < 50) riskScore += 0.1;
-  
-  // Gestational age factors
   if (gestationalAge < 20 || gestationalAge > 38) riskScore += 0.1;
-  
-  // Other factors
   if (familyHistory) riskScore += 0.2;
   if (priorLoss) riskScore += 0.15;
   if (infection) riskScore += 0.2;
   if (folicAcid === 'none') riskScore += 0.1;
-  
-  // Parity factors
   if (parity > 4) riskScore += 0.1;
   if (gravida > 4) riskScore += 0.05;
 
-  // Normalize to 0-1 range
   riskScore = Math.min(Math.max(riskScore, 0.01), 0.95);
 
-  // Determine risk tier
   let risk_tier: 'low' | 'elevated' | 'high';
   if (riskScore > 0.6) risk_tier = 'high';
   else if (riskScore > 0.35) risk_tier = 'elevated';
   else risk_tier = 'low';
 
-  // Generate individual anomaly probabilities
   return {
-    overall_score: riskScore,
+    overall_score: Math.round(riskScore * 100) / 100,
     risk_tier: risk_tier,
-    chd_prob: Math.min(riskScore * (1.1 + Math.random() * 0.2), 0.95),
-    ntd_prob: Math.min(riskScore * (1.0 + Math.random() * 0.2), 0.9),
-    renal_prob: Math.min(riskScore * (0.9 + Math.random() * 0.2), 0.85),
-    abdominal_prob: Math.min(riskScore * (0.8 + Math.random() * 0.2), 0.8),
-    cleft_prob: Math.min(riskScore * (0.7 + Math.random() * 0.2), 0.75),
+    chd_prob: Math.round(Math.min(riskScore * (1.1 + Math.random() * 0.2), 0.95) * 100) / 100,
+    ntd_prob: Math.round(Math.min(riskScore * (1.0 + Math.random() * 0.2), 0.9) * 100) / 100,
+    renal_prob: Math.round(Math.min(riskScore * (0.9 + Math.random() * 0.2), 0.85) * 100) / 100,
+    abdominal_prob: Math.round(Math.min(riskScore * (0.8 + Math.random() * 0.2), 0.8) * 100) / 100,
+    cleft_prob: Math.round(Math.min(riskScore * (0.7 + Math.random() * 0.2), 0.75) * 100) / 100,
   };
 }
 
@@ -154,48 +135,50 @@ function AddPatientModal({ isOpen, onClose, onSuccess }: AddPatientModalProps) {
         throw new Error('No authentication token found. Please login again.');
       }
 
-      console.log('🚀 Creating patient...');
-      console.log('📊 Form data:', formData);
-
-      // Step 1: Calculate prediction directly
+      // Calculate prediction
       const prediction = calculatePrediction(formData);
       console.log('🧠 Prediction calculated:', prediction);
 
-      // Step 2: Create patient with prediction data
-      const patientResponse = await fetch(`${API_BASE}/api/patients`, {
+      // Create patient with prediction data
+      const patientData = {
+        name: formData.name,
+        age: parseInt(formData.age) || 0,
+        gender: formData.gender,
+        district: formData.district || null,
+        sector: formData.sector || null,
+        village: formData.village || null,
+        phone: formData.phone || null,
+        overall_score: prediction.overall_score,
+        risk_tier: prediction.risk_tier,
+        chd_prob: prediction.chd_prob,
+        ntd_prob: prediction.ntd_prob,
+        renal_prob: prediction.renal_prob,
+        abdominal_prob: prediction.abdominal_prob,
+        cleft_prob: prediction.cleft_prob,
+      };
+
+      console.log('📤 Sending patient data:', patientData);
+
+      const response = await fetch(`${API_BASE}/api/patients`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          name: formData.name,
-          age: parseInt(formData.age) || 0,
-          gender: formData.gender,
-          district: formData.district || null,
-          sector: formData.sector || null,
-          village: formData.village || null,
-          phone: formData.phone || null,
-          overall_score: prediction.overall_score,
-          risk_tier: prediction.risk_tier,
-          chd_prob: prediction.chd_prob,
-          ntd_prob: prediction.ntd_prob,
-          renal_prob: prediction.renal_prob,
-          abdominal_prob: prediction.abdominal_prob,
-          cleft_prob: prediction.cleft_prob,
-        }),
+        body: JSON.stringify(patientData),
       });
 
-      const patientResult = await patientResponse.json();
+      const result = await response.json();
+      console.log('📥 Response:', result);
 
-      if (!patientResponse.ok) {
-        throw new Error(patientResult.error || 'Failed to create patient');
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to create patient');
       }
 
-      const patientId = patientResult.patient?.id || patientResult.id || patientResult.data?.id;
+      const patientId = result.data?.id || result.id;
       console.log('✅ Patient created with ID:', patientId);
 
-      // Step 3: Save to risk_scores table
+      // Save to risk_scores
       if (patientId) {
         try {
           await fetch(`${API_BASE}/api/risk-scores`, {
@@ -217,7 +200,7 @@ function AddPatientModal({ isOpen, onClose, onSuccess }: AddPatientModalProps) {
           });
           console.log('✅ Risk score saved');
         } catch (riskErr) {
-          console.warn('⚠️ Could not save risk score:', riskErr);
+          console.warn('⚠️ Risk score save failed:', riskErr);
         }
       }
 
