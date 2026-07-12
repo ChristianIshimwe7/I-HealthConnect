@@ -3,28 +3,38 @@ import { authenticate, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
-const supabaseUrl = process.env.SUPABASE_URL || 'https://nmzmkkwhtgkspfvbdxgr.supabase.co';
-const supabaseKey = process.env.SUPABASE_ANON_KEY || '';
+// Hardcoded Supabase credentials
+const SUPABASE_URL = 'https://nmzmkkwhtgkspfvbdxgr.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_Tu-7n7V-kUpeVokv5w8rfQ_oJe9CDA7';
 
 const supabaseFetch = async (endpoint: string, options: RequestInit = {}) => {
-  const url = `${supabaseUrl}/rest/v1${endpoint}`;
+  const url = `${SUPABASE_URL}/rest/v1${endpoint}`;
+  console.log('📡 Fetching:', url);
+  console.log('🔑 Using key:', SUPABASE_ANON_KEY.substring(0, 15) + '...');
+  
   const response = await fetch(url, {
     ...options,
     headers: {
-      'apikey': supabaseKey,
-      'Authorization': `Bearer ${supabaseKey}`,
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
       'Content-Type': 'application/json',
       'Prefer': 'return=representation',
       ...options.headers,
     },
   });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('❌ Supabase error:', response.status, errorText);
+  }
+  
   return response;
 };
 
-// GET all patients (protected)
+// GET all patients
 router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    console.log('📊 Fetching patients for user:', req.user?.email || req.user?.id);
+    console.log('📊 Fetching patients...');
     
     const limit = parseInt(req.query.limit as string) || 1000;
     const offset = parseInt(req.query.offset as string) || 0;
@@ -37,12 +47,12 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
     }
 
     const response = await supabaseFetch(endpoint);
-    const data: any = await response.json();
+    const data = await response.json();
 
     if (!response.ok) {
-      console.error('❌ Supabase error:', data);
       return res.status(response.status).json({ 
-        error: data?.message || 'Failed to fetch patients' 
+        error: data?.message || 'Failed to fetch patients',
+        details: data
       });
     }
 
@@ -62,10 +72,10 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
   }
 });
 
-// POST create patient (protected)
+// POST create patient
 router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    console.log('📝 Creating patient for user:', req.user?.email || req.user?.id);
+    console.log('📝 Creating patient...');
     const { name, age, gender, district, sector, village, phone } = req.body;
 
     if (!name) {
@@ -88,10 +98,9 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
       body: JSON.stringify(patientData)
     });
 
-    const data: any = await response.json();
+    const data = await response.json();
 
     if (!response.ok) {
-      console.error('❌ Supabase error:', data);
       return res.status(response.status).json({ 
         error: data?.message || 'Failed to create patient' 
       });
