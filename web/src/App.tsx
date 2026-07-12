@@ -7,8 +7,6 @@ import LoginPage from './pages/LoginPage';
 import SignUpPage from './pages/SignUpPage';
 import DashboardPage from './pages/DashboardPage';
 import PatientsPage from './pages/PatientsPage';
-import ReferralReviewPage from './pages/ReferralReviewPage';
-import AnomalyTrendsPage from './pages/AnomalyTrendsPage';
 import CoordinatorPage from './pages/CoordinatorPage';
 import AccountsPage from './pages/AccountsPage';
 import SettingsPage from './pages/SettingsPage';
@@ -26,7 +24,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 export default function App() {
   console.log('🚀 App rendering with all routes');
-  
+
   return (
     <BrowserRouter>
       <Routes>
@@ -49,22 +47,6 @@ export default function App() {
           element={
             <ProtectedRoute>
               <PatientsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/referrals"
-          element={
-            <ProtectedRoute>
-              <ReferralReviewPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/trends"
-          element={
-            <ProtectedRoute>
-              <AnomalyTrendsPage />
             </ProtectedRoute>
           }
         />
