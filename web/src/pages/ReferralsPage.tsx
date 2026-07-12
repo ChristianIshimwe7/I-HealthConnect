@@ -12,16 +12,9 @@ import {
   AlertCircle,
   User,
   Calendar,
-  MapPin,
   Activity,
   RefreshCw,
-  Users,
-  FileText,
-  TrendingUp,
-  TrendingDown,
-  Minus,
-  ArrowRight,
-  Filter
+  FileText
 } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -93,6 +86,7 @@ export default function ReferralsPage() {
       const result = await response.json();
       console.log('📊 Referrals data:', result);
 
+      // Safely extract referrals array
       let referralList: Referral[] = [];
       
       if (Array.isArray(result)) {
@@ -103,6 +97,7 @@ export default function ReferralsPage() {
         } else if (result.referrals && Array.isArray(result.referrals)) {
           referralList = result.referrals;
         } else {
+          // Try to find any array property
           for (const key in result) {
             if (Array.isArray(result[key])) {
               referralList = result[key];
@@ -112,11 +107,8 @@ export default function ReferralsPage() {
         }
       }
 
-      if (!Array.isArray(referralList)) {
-        referralList = [];
-      }
-
-      setReferrals(referralList);
+      // Always ensure we have an array
+      setReferrals(Array.isArray(referralList) ? referralList : []);
       console.log('✅ Found', referralList.length, 'referrals');
 
     } catch (err: any) {
@@ -125,33 +117,6 @@ export default function ReferralsPage() {
       setReferrals([]);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const stats = {
-    total: referrals.length,
-    pending: referrals.filter(r => r?.status?.toLowerCase() === 'pending').length,
-    approved: referrals.filter(r => r?.status?.toLowerCase() === 'approved').length,
-    completed: referrals.filter(r => r?.status?.toLowerCase() === 'completed').length,
-    cancelled: referrals.filter(r => r?.status?.toLowerCase() === 'cancelled').length,
-  };
-
-  const filteredReferrals = Array.isArray(referrals) 
-    ? referrals.filter(r => filterStatus === 'all' || r?.status?.toLowerCase() === filterStatus)
-    : [];
-
-  const getStatusIcon = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'pending':
-        return <Clock size={18} color="#D97706" />;
-      case 'approved':
-        return <CheckCircle size={18} color="#1D9E75" />;
-      case 'completed':
-        return <CheckCircle size={18} color="#3B82F6" />;
-      case 'cancelled':
-        return <XCircle size={18} color="#DC2626" />;
-      default:
-        return <AlertCircle size={18} color="#6B7280" />;
     }
   };
 
@@ -173,14 +138,26 @@ export default function ReferralsPage() {
   const getRiskColor = (tier?: string) => {
     switch (tier?.toLowerCase()) {
       case 'high':
-        return { bg: '#FCEBEB', color: '#DC2626', label: 'High Risk', icon: '🔴' };
+        return { bg: '#FCEBEB', color: '#DC2626', label: 'High Risk' };
       case 'elevated':
-        return { bg: '#FEF3C7', color: '#D97706', label: 'Elevated', icon: '🟡' };
+        return { bg: '#FEF3C7', color: '#D97706', label: 'Elevated' };
       case 'low':
-        return { bg: '#EAF3DE', color: '#1D9E75', label: 'Low Risk', icon: '🟢' };
+        return { bg: '#EAF3DE', color: '#1D9E75', label: 'Low Risk' };
       default:
-        return { bg: '#F3F4F6', color: '#6B7280', label: 'Unknown', icon: '⚪' };
+        return { bg: '#F3F4F6', color: '#6B7280', label: 'Unknown' };
     }
+  };
+
+  // Safely filter referrals - always check if it's an array first
+  const filteredReferrals = Array.isArray(referrals) 
+    ? referrals.filter(r => filterStatus === 'all' || r?.status?.toLowerCase() === filterStatus)
+    : [];
+
+  const stats = {
+    total: Array.isArray(referrals) ? referrals.length : 0,
+    pending: Array.isArray(referrals) ? referrals.filter(r => r?.status?.toLowerCase() === 'pending').length : 0,
+    approved: Array.isArray(referrals) ? referrals.filter(r => r?.status?.toLowerCase() === 'approved').length : 0,
+    completed: Array.isArray(referrals) ? referrals.filter(r => r?.status?.toLowerCase() === 'completed').length : 0,
   };
 
   const C = { border: '#E2E8F0', bg: '#F8FAFC', text: '#0F172A',
@@ -220,7 +197,7 @@ export default function ReferralsPage() {
           padding: '20px 24px',
           color: '#791F1F'
         }}>
-          <h3 style={{ margin: 0, marginBottom: 8 }}>Error Loading Referrals</h3>
+          <h3 style={{ margin: 0, marginBottom: 8 }}>⚠️ Error Loading Referrals</h3>
           <p style={{ margin: 0 }}>{error}</p>
           <button
             onClick={fetchReferrals}
@@ -243,16 +220,11 @@ export default function ReferralsPage() {
 
   return (
     <Layout activeRoute={location.pathname} user={user}>
-      {/* Header with stats */}
       <div style={{ marginBottom: 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap' }}>
           <div>
-            <h1 style={{ fontSize: 24, fontWeight: 700, color: C.text, margin: 0 }}>
-              Referrals
-            </h1>
-            <p style={{ color: C.muted, marginTop: 4, fontSize: 14 }}>
-              Track and manage patient referrals
-            </p>
+            <h1 style={{ fontSize: 24, fontWeight: 700, color: C.text, margin: 0 }}>Referrals</h1>
+            <p style={{ color: C.muted, marginTop: 4, fontSize: 14 }}>Track and manage patient referrals</p>
           </div>
           <button
             onClick={fetchReferrals}
@@ -260,49 +232,36 @@ export default function ReferralsPage() {
               display: 'flex',
               alignItems: 'center',
               gap: 8,
-              padding: '10px 20px',
+              padding: '8px 16px',
               background: '#1D9E75',
               color: 'white',
               border: 'none',
-              borderRadius: 8,
+              borderRadius: 6,
               cursor: 'pointer',
-              fontSize: 14,
-              fontWeight: 600
+              fontSize: 13,
             }}
           >
-            <RefreshCw size={18} />
+            <RefreshCw size={16} />
             Refresh
           </button>
         </div>
 
         {/* Stats Cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginTop: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginTop: 16 }}>
           <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, padding: '14px 18px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <FileText size={16} color={C.muted} />
-              <span style={{ fontSize: 12, color: C.muted }}>Total</span>
-            </div>
+            <div style={{ fontSize: 12, color: C.muted }}>Total</div>
             <div style={{ fontSize: 24, fontWeight: 700, color: C.text }}>{stats.total}</div>
           </div>
           <div style={{ background: '#FEF3C7', border: '1px solid #FDE68A', borderRadius: 8, padding: '14px 18px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Clock size={16} color="#D97706" />
-              <span style={{ fontSize: 12, color: '#D97706' }}>Pending</span>
-            </div>
+            <div style={{ fontSize: 12, color: '#D97706' }}>Pending</div>
             <div style={{ fontSize: 24, fontWeight: 700, color: '#D97706' }}>{stats.pending}</div>
           </div>
           <div style={{ background: '#D1FAE5', border: '1px solid #6EE7B7', borderRadius: 8, padding: '14px 18px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <CheckCircle size={16} color="#065F46" />
-              <span style={{ fontSize: 12, color: '#065F46' }}>Approved</span>
-            </div>
+            <div style={{ fontSize: 12, color: '#065F46' }}>Approved</div>
             <div style={{ fontSize: 24, fontWeight: 700, color: '#065F46' }}>{stats.approved}</div>
           </div>
           <div style={{ background: '#DBEAFE', border: '1px solid #93C5FD', borderRadius: 8, padding: '14px 18px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <CheckCircle size={16} color="#1E40AF" />
-              <span style={{ fontSize: 12, color: '#1E40AF' }}>Completed</span>
-            </div>
+            <div style={{ fontSize: 12, color: '#1E40AF' }}>Completed</div>
             <div style={{ fontSize: 24, fontWeight: 700, color: '#1E40AF' }}>{stats.completed}</div>
           </div>
         </div>
@@ -310,7 +269,6 @@ export default function ReferralsPage() {
 
       {/* Filter */}
       <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
-        <Filter size={18} color={C.muted} />
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
@@ -321,22 +279,19 @@ export default function ReferralsPage() {
             fontSize: 13,
             background: C.surface,
             outline: 'none',
-            cursor: 'pointer',
-            minWidth: 150
+            cursor: 'pointer'
           }}
         >
           <option value="all">All Statuses</option>
-          <option value="pending">⏳ Pending</option>
-          <option value="approved">✅ Approved</option>
-          <option value="completed">📋 Completed</option>
-          <option value="cancelled">❌ Cancelled</option>
+          <option value="pending">Pending</option>
+          <option value="approved">Approved</option>
+          <option value="completed">Completed</option>
+          <option value="cancelled">Cancelled</option>
         </select>
-        <span style={{ fontSize: 13, color: C.muted }}>
-          {filteredReferrals.length} referrals found
-        </span>
+        <span style={{ fontSize: 13, color: C.muted }}>{filteredReferrals.length} referrals</span>
       </div>
 
-      {/* Referrals Grid */}
+      {/* Referrals List - Always check if referrals is an array */}
       {!Array.isArray(referrals) || referrals.length === 0 ? (
         <div style={{
           background: C.surface,
@@ -345,27 +300,20 @@ export default function ReferralsPage() {
           padding: '60px 20px',
           textAlign: 'center'
         }}>
-          <Send size={56} color={C.muted} style={{ marginBottom: 16 }} />
-          <h3 style={{ color: C.text, margin: 0, marginBottom: 8, fontSize: 20 }}>
-            No Referrals
-          </h3>
-          <p style={{ color: C.muted, margin: 0, fontSize: 14, maxWidth: 400, margin: '0 auto' }}>
+          <Send size={48} color={C.muted} style={{ marginBottom: 16 }} />
+          <h3 style={{ color: C.text, margin: 0, marginBottom: 8 }}>No Referrals</h3>
+          <p style={{ color: C.muted, margin: 0, fontSize: 14 }}>
             {filterStatus !== 'all' 
               ? 'No referrals with the selected status' 
-              : 'When a patient needs specialist care, a referral will be created here.'}
+              : 'Referrals will appear here when created.'}
           </p>
         </div>
       ) : (
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', 
-          gap: 16 
-        }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {filteredReferrals.map((r, index) => {
             const status = getStatusColor(r?.status);
             const risk = getRiskColor(r?.risk_tier || r?.riskTier);
             const patientName = r?.patient_name || r?.patientName || 'Unknown Patient';
-            const referralReason = r?.referral_reason || r?.referralReason || 'No reason provided';
             
             return (
               <div
@@ -373,122 +321,58 @@ export default function ReferralsPage() {
                 style={{
                   background: C.surface,
                   border: `1px solid ${C.border}`,
-                  borderRadius: 12,
-                  padding: 20,
-                  transition: 'all 0.3s ease',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-                  position: 'relative',
-                  overflow: 'hidden'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.12)';
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                }}
-              >
-                {/* Status Badge - Top Right */}
-                <div style={{
-                  position: 'absolute',
-                  top: 0,
-                  right: 0,
-                  background: status.bg,
-                  color: status.color,
-                  padding: '4px 14px',
-                  fontSize: 11,
-                  fontWeight: 600,
-                  borderRadius: '0 12px 0 12px',
+                  borderRadius: 10,
+                  padding: '16px 20px',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 4
-                }}>
-                  {status.icon} {status.label}
-                </div>
-
-                {/* Patient Info */}
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: 12
+                }}
+              >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                   <div style={{
-                    width: 52,
-                    height: 52,
+                    width: 40,
+                    height: 40,
                     borderRadius: '50%',
                     background: `linear-gradient(135deg, ${risk.bg}, ${risk.bg}88)`,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: 22,
+                    fontSize: 16,
                     fontWeight: 600,
                     color: risk.color
                   }}>
                     {patientName.charAt(0)?.toUpperCase() || '?'}
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 16, fontWeight: 600, color: C.text }}>
+                  <div>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: C.text }}>
                       {patientName}
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: C.muted, marginTop: 2 }}>
-                      <User size={14} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 12, color: C.muted }}>
                       <span>ID: {r?.patient_id || 'N/A'}</span>
+                      <span>•</span>
+                      <span style={{ color: risk.color, fontWeight: 500 }}>{risk.label}</span>
                     </div>
                   </div>
                 </div>
-
-                {/* Referral Reason */}
-                <div style={{ 
-                  marginTop: 14,
-                  padding: 12,
-                  background: C.bg,
-                  borderRadius: 8,
-                  fontSize: 13,
-                  color: C.text,
-                  borderLeft: `3px solid ${status.color}`
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                    <FileText size={14} color={C.muted} style={{ marginTop: 2, flexShrink: 0 }} />
-                    <span>{referralReason}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                  <div style={{
+                    padding: '4px 12px',
+                    borderRadius: 12,
+                    background: status.bg,
+                    color: status.color,
+                    fontSize: 12,
+                    fontWeight: 600
+                  }}>
+                    {status.label}
                   </div>
-                </div>
-
-                {/* Footer Info */}
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  gap: 8,
-                  marginTop: 14,
-                  paddingTop: 14,
-                  borderTop: `1px solid ${C.border}`
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: C.muted }}>
-                    <span style={{ fontSize: 16 }}>{risk.icon}</span>
-                    <span style={{ color: risk.color, fontWeight: 500 }}>
-                      {risk.label}
-                    </span>
+                  <div style={{ fontSize: 12, color: C.muted }}>
+                    <Calendar size={14} style={{ display: 'inline', marginRight: 4 }} />
+                    {r?.sent_at || r?.created_at 
+                      ? new Date(r.sent_at || r.created_at).toLocaleDateString() 
+                      : '—'}
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: C.muted }}>
-                    <Calendar size={14} />
-                    <span>
-                      {r?.sent_at || r?.created_at 
-                        ? new Date(r.sent_at || r.created_at).toLocaleDateString() 
-                        : '—'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Clickable Arrow */}
-                <div style={{
-                  marginTop: 12,
-                  paddingTop: 12,
-                  borderTop: `1px solid ${C.border}`,
-                  display: 'flex',
-                  justifyContent: 'flex-end',
-                  color: C.muted,
-                  fontSize: 12
-                }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    View Details
-                    <ArrowRight size={14} />
-                  </span>
                 </div>
               </div>
             );
