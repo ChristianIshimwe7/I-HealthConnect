@@ -14,25 +14,26 @@ dotenv.config();
 const app = express();
 const PORT = parseInt(process.env.PORT || '3000', 10);
 
-// ✅ FIXED CORS Configuration
+// CORS configuration
 app.use(cors({
-  origin: [
-    'https://i-healthconnect-frontend.onrender.com',
-    'http://localhost:3000',
-    'http://localhost:3001',
-    'http://localhost:5173',
-    'http://127.0.0.1:3000',
-    'http://127.0.0.1:3001',
-    'http://127.0.0.1:5173',
-    'https://i-healthconnect.vercel.app',
-    'https://i-healthconnect-git-main.vercel.app',
-    // Add your frontend domain here
-  ],
+  origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
   credentials: true,
   optionsSuccessStatus: 200
 }));
+
+// Additional CORS headers for all responses
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  next();
+});
 
 app.use(express.json());
 

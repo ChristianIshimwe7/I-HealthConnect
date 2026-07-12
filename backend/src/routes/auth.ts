@@ -6,8 +6,20 @@ import { supabase } from '../config/supabase';
 
 const router = express.Router();
 
-// Use any to bypass WebSocket type conflicts
-const WebSocket = require('ws');
+// CORS headers middleware for this route
+const corsHeaders = (req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  next();
+};
+
+// Apply CORS headers to all auth routes
+router.use(corsHeaders);
 
 // Register
 router.post('/register', async (req, res) => {
@@ -109,7 +121,7 @@ router.post('/login', async (req, res) => {
 });
 
 // Verify token
-router.get('/verify', (req, res) => {
+router.get('/verify', async (req, res) => {
   const authHeader = req.headers.authorization;
   const token = authHeader?.split(' ')[1];
 
@@ -126,18 +138,3 @@ router.get('/verify', (req, res) => {
 });
 
 export default router;
-
-// Handle OPTIONS preflight requests
-router.options('/login', (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.sendStatus(200);
-});
-
-router.options('/register', (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.sendStatus(200);
-});
