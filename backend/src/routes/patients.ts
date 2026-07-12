@@ -10,7 +10,6 @@ const SUPABASE_ANON_KEY = 'sb_publishable_Tu-7n7V-kUpeVokv5w8rfQ_oJe9CDA7';
 const supabaseFetch = async (endpoint: string, options: RequestInit = {}) => {
   const url = `${SUPABASE_URL}/rest/v1${endpoint}`;
   console.log('📡 Fetching:', url);
-  console.log('🔑 Key:', SUPABASE_ANON_KEY);
   
   const response = await fetch(url, {
     ...options,
@@ -23,12 +22,6 @@ const supabaseFetch = async (endpoint: string, options: RequestInit = {}) => {
     },
   });
   
-  console.log('📡 Response status:', response.status);
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('❌ Supabase error:', response.status, errorText);
-  }
-  
   return response;
 };
 
@@ -37,7 +30,6 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     console.log('📊 ====== PATIENTS API CALLED ======');
     console.log('📊 User:', req.user?.email || req.user?.id);
-    console.log('📊 Query:', req.query);
     
     const limit = parseInt(req.query.limit as string) || 1000;
     const offset = parseInt(req.query.offset as string) || 0;
@@ -46,7 +38,7 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
 
     console.log('📊 Fetching from Supabase:', endpoint);
     const response = await supabaseFetch(endpoint);
-    const data = await response.json();
+    const data: any = await response.json();
 
     if (!response.ok) {
       console.error('❌ Supabase error:', data);
@@ -67,6 +59,57 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
     console.error('[Patients] Error:', err);
     return res.status(500).json({ 
       error: 'Internal server error',
+      details: err instanceof Error ? err.message : String(err)
+    });
+  }
+});
+
+// POST create patient
+router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    console.log('📝 Creating patient...');
+    const { name, age, gender, district, sector, village, phone } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ error: 'Name is required' });
+    }
+
+    const patientData: any = {
+      name,
+      age: age ? parseInt(age) : null,
+      gender: gender || null,
+      district: district || null,
+      sector: sector || null,
+      village: village || null,
+      phone: phone || null,
+      chw_id: req.user?.id || null
+    };
+
+    const response = await supabaseFetch('/patients', {
+      method: 'POST',
+      body: JSON.stringify(patientData)
+    });
+
+    const data: any = await response.json();
+
+    if (!response.ok) {
+      console.error('❌ Supabase error:', data);
+      return res.status(response.status).json({ 
+        error: data?.message || 'Failed to create patient' 
+      });
+    }
+
+    const patient = data[0] || data;
+    console.log('✅ Patient created:', patient?.id);
+    
+    return res.status(201).json({ 
+      success: true, 
+      data: patient
+    });
+  } catch (err) {
+    console.error('[Patients] Create error:', err);
+    return res.status(500).json({ 
+      error: 'Failed to create patient',
       details: err instanceof Error ? err.message : String(err)
     });
   }
