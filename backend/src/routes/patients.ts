@@ -6,11 +6,8 @@ const router = Router();
 const supabaseUrl = process.env.SUPABASE_URL || 'https://nmzmkkwhtgkspfvbdxgr.supabase.co';
 const supabaseKey = process.env.SUPABASE_ANON_KEY || '';
 
-// Helper function to make Supabase REST API calls
 const supabaseFetch = async (endpoint: string, options: RequestInit = {}) => {
   const url = `${supabaseUrl}/rest/v1${endpoint}`;
-  console.log('📡 Request URL:', url);
-  
   const response = await fetch(url, {
     ...options,
     headers: {
@@ -21,19 +18,17 @@ const supabaseFetch = async (endpoint: string, options: RequestInit = {}) => {
       ...options.headers,
     },
   });
-  
-  console.log('📡 Response status:', response.status);
   return response;
 };
 
-// GET all patients
+// GET all patients (protected)
 router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
   try {
+    console.log('📊 Fetching patients for user:', req.user?.email || req.user?.id);
+    
     const limit = parseInt(req.query.limit as string) || 1000;
     const offset = parseInt(req.query.offset as string) || 0;
     const search = req.query.search as string || '';
-
-    console.log('📊 Fetching patients...');
 
     let endpoint = `/patients?select=*&order=created_at.desc&limit=${limit}&offset=${offset}`;
     
@@ -67,20 +62,18 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
   }
 });
 
-// POST create patient
+// POST create patient (protected)
 router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    console.log('📝 Creating patient with body:', req.body);
-    
+    console.log('📝 Creating patient for user:', req.user?.email || req.user?.id);
     const { name, age, gender, district, sector, village, phone } = req.body;
 
     if (!name) {
       return res.status(400).json({ error: 'Name is required' });
     }
 
-    // Only include columns that exist in the table
-    const patientData: any = {
-      name: name,
+    const patientData = {
+      name,
       age: age ? parseInt(age) : null,
       gender: gender || null,
       district: district || null,
@@ -89,8 +82,6 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
       phone: phone || null,
       chw_id: req.user?.id || null
     };
-
-    console.log('📝 Patient data:', patientData);
 
     const response = await supabaseFetch('/patients', {
       method: 'POST',
@@ -106,8 +97,13 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
       });
     }
 
-    console.log('✅ Patient created:', data);
-    return res.status(201).json({ success: true, data: data[0] || data });
+    const patient = data[0] || data;
+    console.log('✅ Patient created:', patient.id);
+    
+    return res.status(201).json({ 
+      success: true, 
+      data: patient
+    });
   } catch (err) {
     console.error('[Patients] Create error:', err);
     return res.status(500).json({ 
