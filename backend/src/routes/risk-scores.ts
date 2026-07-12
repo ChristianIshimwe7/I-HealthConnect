@@ -3,12 +3,23 @@ import { authenticate, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
-const supabaseUrl = process.env.SUPABASE_URL || 'https://nmzmkkwhtgkspfvbdxgr.supabase.co';
-const supabaseKey = process.env.SUPABASE_ANON_KEY || '';
+// Hardcoded Supabase credentials as fallback
+const SUPABASE_URL = 'https://nmzmkkwhtgkspfvbdxgr.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_Tu-7n7V-kUpeVokv5w8rfQ_oJe9CDA7';
+
+// Try environment variables first, fallback to hardcoded
+const supabaseUrl = process.env.SUPABASE_URL || SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_ANON_KEY || SUPABASE_ANON_KEY;
+
+console.log('🔑 Supabase URL:', supabaseUrl);
+console.log('🔑 Supabase Key exists:', !!supabaseKey);
+console.log('🔑 Using key from:', process.env.SUPABASE_ANON_KEY ? 'environment' : 'hardcoded');
 
 // Helper function to make Supabase REST API calls
 const supabaseFetch = async (endpoint: string, options: RequestInit = {}) => {
   const url = `${supabaseUrl}/rest/v1${endpoint}`;
+  console.log('📡 Fetching from Supabase:', url);
+  
   const response = await fetch(url, {
     ...options,
     headers: {
@@ -18,6 +29,8 @@ const supabaseFetch = async (endpoint: string, options: RequestInit = {}) => {
       ...options.headers,
     },
   });
+  
+  console.log('📡 Response status:', response.status);
   return response;
 };
 
@@ -31,12 +44,11 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
 
     if (!response.ok) {
       console.error('❌ Supabase error:', data);
-      // If table doesn't exist, return empty array
-      if (response.status === 404) {
-        return res.json([]);
-      }
-      const errorMessage = data?.message || 'Failed to fetch risk scores';
-      throw new Error(errorMessage);
+      console.error('❌ Status:', response.status);
+      return res.status(response.status).json({ 
+        error: data?.message || 'Failed to fetch risk scores',
+        details: data
+      });
     }
 
     console.log(`✅ Found ${data?.length || 0} risk scores`);
@@ -94,7 +106,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
     return res.status(201).json(data[0]);
   } catch (err) {
     console.error('[Risk Scores] Create error:', err);
-    return res.status(500).json({ 
+    return res.status(500).json({
       error: 'Failed to create risk score',
       details: err instanceof Error ? err.message : String(err)
     });
