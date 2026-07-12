@@ -19,9 +19,9 @@ import {
   Clock,
   Heart,
   Brain,
-  Kidney,
   Stethoscope,
-  Baby
+  Baby,
+  Droplets
 } from 'lucide-react';
 
 export default function PatientsPage() {
@@ -129,21 +129,10 @@ export default function PatientsPage() {
     switch(type) {
       case 'chd': return <Heart size={14} color="#E24B4A" />;
       case 'ntd': return <Brain size={14} color="#F59E0B" />;
-      case 'renal': return <Kidney size={14} color="#3B82F6" />;
+      case 'renal': return <Droplets size={14} color="#3B82F6" />;
       case 'abdominal': return <Stethoscope size={14} color="#8B5CF6" />;
       case 'cleft': return <Baby size={14} color="#EC4899" />;
       default: return <Activity size={14} color="#6B7280" />;
-    }
-  };
-
-  const getAnomalyLabel = (type: string) => {
-    switch(type) {
-      case 'chd': return 'CHD';
-      case 'ntd': return 'NTD';
-      case 'renal': return 'Renal';
-      case 'abdominal': return 'Abdominal';
-      case 'cleft': return 'Cleft';
-      default: return type;
     }
   };
 
@@ -357,7 +346,7 @@ export default function PatientsPage() {
             const anomalies = [
               { key: 'chd', label: 'CHD', value: p?.chd_prob, icon: <Heart size={14} color="#E24B4A" /> },
               { key: 'ntd', label: 'NTD', value: p?.ntd_prob, icon: <Brain size={14} color="#F59E0B" /> },
-              { key: 'renal', label: 'Renal', value: p?.renal_prob, icon: <Kidney size={14} color="#3B82F6" /> },
+              { key: 'renal', label: 'Renal', value: p?.renal_prob, icon: <Droplets size={14} color="#3B82F6" /> },
               { key: 'abdominal', label: 'Abdominal', value: p?.abdominal_prob, icon: <Stethoscope size={14} color="#8B5CF6" /> },
               { key: 'cleft', label: 'Cleft', value: p?.cleft_prob, icon: <Baby size={14} color="#EC4899" /> },
             ];
