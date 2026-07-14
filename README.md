@@ -41,8 +41,14 @@ The platform is designed for Rwanda's **60,000+ Community Health Workers (CHWs)*
 
 I-HealthConnect places a predictive AI model — trained on clinical data — directly into the hands of frontline health workers.
 
-Link to video : https://drive.google.com/file/d/1iyJaUzVpxR6xx6mtnslwdjiYd3y5Dku5/view?usp=sharing
+First of all allow me to share different important links to the project :
 
+1. Link of video demo : https://drive.google.com/file/d/1iyJaUzVpxR6xx6mtnslwdjiYd3y5Dku5/view?usp=sharing
+
+2. Link of deployed version : https://i-health-connect-f7.vercel.app/login
+
+3. Link to Model on Hugging face : 
+https://huggingface.co/spaces/chris765/ihealthconnect
 
 ---
 
