@@ -537,6 +537,6 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 <div align="center">
   <strong>I-HealthConnect · Afiabora</strong><br/>
   <em>Early detection. Every pregnancy. Everywhere.</em><br/><br/>
-  Made with ❤️ for Rwanda's 60,000 Community Health Workers<br/>
+  Made with LOVE for Rwanda's 60,000 Community Health Workers<br/>
   African Leadership University · Kigali · 2026
 </div>
