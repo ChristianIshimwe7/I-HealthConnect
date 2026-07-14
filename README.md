@@ -41,6 +41,9 @@ The platform is designed for Rwanda's **60,000+ Community Health Workers (CHWs)*
 
 I-HealthConnect places a predictive AI model — trained on clinical data — directly into the hands of frontline health workers.
 
+Link to video : https://drive.google.com/file/d/1iyJaUzVpxR6xx6mtnslwdjiYd3y5Dku5/view?usp=sharing
+
+
 ---
 
 ## The Research Problem
